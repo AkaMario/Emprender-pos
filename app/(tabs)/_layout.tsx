@@ -17,7 +17,6 @@ export default function TabLayout() {
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: Colors[colorScheme ?? "light"].background }}>
       <Navbar
-        title="POS"
         onMenuPress={() => setSidebarOpen(!sidebarOpen)}
       />
 

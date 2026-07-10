@@ -40,7 +40,6 @@
           }
         }
       ],
-
       "expo-sqlite"
     ],
     "experiments": {

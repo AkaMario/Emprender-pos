@@ -22,7 +22,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const isDark = colorScheme === "dark";
   const backgroundColor = isDark ? "#1a1a1a" : "#f5f5f5";
   const textColor = isDark ? "#fff" : "#000";
-  const hoverBg = isDark ? "#333" : "#e0e0e0";
 
   const sidebarItems: SidebarItem[] = [
     { label: "Home", route: "/(tabs)/", icon: "home" },

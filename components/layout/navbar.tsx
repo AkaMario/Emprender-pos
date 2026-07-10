@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/theme";
+import { useAuth } from "@/context/auth";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { usePathname } from "expo-router";
 import React from "react";
@@ -9,7 +10,7 @@ interface NavbarProps {
   onMenuPress?: () => void;
 }
 
-export function Navbar({ title = "App", onMenuPress }: NavbarProps) {
+export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
   const colorScheme = useColorScheme();
   const pathname = usePathname();
   const isHome = pathname === "/" || pathname.includes("index");
@@ -18,6 +19,8 @@ export function Navbar({ title = "App", onMenuPress }: NavbarProps) {
     ? Colors.dark.background
     : Colors.light.background;
   const textColor = isDark ? "#fff" : "#000";
+
+  const { username } = useAuth();
 
   return (
     <View
@@ -35,7 +38,11 @@ export function Navbar({ title = "App", onMenuPress }: NavbarProps) {
           className="text-lg font-bold flex-1 text-center"
           style={{ color: textColor }}
         >
-          {title}
+          {username ? (
+            <Text className="mt-2 text-gray-500">
+              Bienvenido(a), {username}
+            </Text>
+          ) : null}
         </Text>
       )}
 
