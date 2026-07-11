@@ -25,6 +25,18 @@ export default function RootLayout() {
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
+            name="view/settings/change-password"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="view/settings/change-pin"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="view/settings/change-security-question"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
             name="modal"
             options={{ presentation: "modal", title: "Modal" }}
           />

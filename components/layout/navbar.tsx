@@ -1,9 +1,11 @@
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/auth";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { usePathname } from "expo-router";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { usePathname, useRouter } from "expo-router";
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Pressable, Text, TouchableOpacity, View } from "react-native";
 
 interface NavbarProps {
   title?: string;
@@ -13,7 +15,9 @@ interface NavbarProps {
 export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
   const colorScheme = useColorScheme();
   const pathname = usePathname();
+  const router = useRouter();
   const isHome = pathname === "/" || pathname.includes("index");
+  const isSettings = pathname.includes("settings");
   const isDark = colorScheme === "dark";
   const backgroundColor = isDark
     ? Colors.dark.background
@@ -27,11 +31,15 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
       className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700"
       style={{ backgroundColor }}
     >
-      <TouchableOpacity onPress={onMenuPress} className="p-2">
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>
-          ☰
-        </Text>
-      </TouchableOpacity>
+      {!isSettings && (
+        <TouchableOpacity onPress={onMenuPress} className="p-2">
+          <AntDesign
+            name="menu"
+            size={24}
+            className="text-black dark:text-white"
+          />
+        </TouchableOpacity>
+      )}
 
       {isHome && (
         <Text
@@ -39,13 +47,39 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
           style={{ color: textColor }}
         >
           {username ? (
-            <Text className="mt-2 text-gray-500">
+            <Text className="mt-2 text-gray-800">
               Bienvenido(a), {username}
             </Text>
           ) : null}
         </Text>
       )}
-
+      {isSettings && (
+        <View className="flex-row items-center justify-start flex-1">
+          <Pressable
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/");
+              }
+            }}
+            className="flex-row items-center gap-4"
+            id="back-button"
+          >
+            <Ionicons
+              name="arrow-back-outline"
+              size={20}
+              className="text-black dark:text-white"
+            />
+            <Text
+              className="text-lg font-bold text-center"
+              style={{ color: textColor }}
+            >
+              Regresar
+            </Text>
+          </Pressable>
+        </View>
+      )}
       <View className="w-8" />
     </View>
   );

@@ -2,5 +2,13 @@
   {
     "type": "sqlite",
     "path": "/run/media/muparela/Local Disk/Local Projects/pos/database/pos.db"
+  },
+  {
+    "type": "sqlite",
+    "path": "/home/muparela/Descargas/pos-export-1783737479109.db"
+  },
+  {
+    "type": "sqlite",
+    "path": "/home/muparela/Descargas/pos-backup-2026-07-10_22-36-04.db"
   }
 ]

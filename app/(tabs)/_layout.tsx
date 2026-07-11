@@ -1,8 +1,9 @@
-import { Tabs } from "expo-router";
-import React, { useState } from "react";
+import { Tabs, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+import { useAuth } from "@/context/auth";
 import { HapticTab } from "@/components/haptic-tab";
 import { Navbar } from "@/components/layout/navbar";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -11,8 +12,16 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function TabLayout() {
+  const { isAuthenticated, isLoading } = useAuth();
   const colorScheme = useColorScheme();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/login");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: Colors[colorScheme ?? "light"].background }}>

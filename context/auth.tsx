@@ -8,7 +8,6 @@ import {
   getValidSessionUser,
   type AuthUser,
 } from "@/database/auth-database";
-import { usePathname, useRouter } from "expo-router";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 const SESSION_DAYS = 30;
@@ -39,7 +38,7 @@ type AuthContextValue = {
   isLoading: boolean;
   hasUser: boolean;
   username?: string;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -61,8 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const pathname = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     let mounted = true;
@@ -95,27 +92,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
-    const isLoginRoute = pathname === "/login";
-
-    if (!isAuthenticated && !isLoginRoute) {
-      router.replace("/login");
-      return;
-    }
-
-    if (isAuthenticated && isLoginRoute) {
-      router.replace("/");
-    }
-  }, [isAuthenticated, isLoading, pathname, router]);
-
-  async function persistSession(nextUser: AuthUser) {
+  async function persistSession(nextUser: AuthUser, rememberMe = true) {
     const token = createToken();
 
-    await createSession(nextUser.id, token.value, token.expiresAt);
+    if (rememberMe) {
+      await createSession(nextUser.id, token.value, token.expiresAt);
+    }
 
     setUser(nextUser);
     setIsAuthenticated(true);
@@ -133,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await persistSession(nextUser);
   }
 
-  async function login(username: string, password: string) {
+  async function login(username: string, password: string, rememberMe = true) {
     const hasStoredUser = user ?? (await getFirstUser());
 
     if (!hasStoredUser) {
@@ -146,13 +128,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error("Usuario o contrasena incorrectos.");
     }
 
-    await persistSession(nextUser);
+    await persistSession(nextUser, rememberMe);
   }
 
   async function logout() {
     await clearSessions();
+    const storedUser = await getFirstUser();
+
+    setUser(storedUser);
     setIsAuthenticated(false);
-    router.replace("/login");
   }
 
   return (
