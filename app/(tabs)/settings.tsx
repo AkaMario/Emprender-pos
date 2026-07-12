@@ -1,8 +1,11 @@
 import { useAuth } from "@/context/auth";
-import { exportDatabaseFile, importDatabaseBackup } from "@/database/auth-database";
+import {
+  exportDatabaseFile,
+  importDatabaseBackup,
+} from "@/database/auth-database";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import * as DocumentPicker from "expo-document-picker";
 import * as Sharing from "expo-sharing";
@@ -91,7 +94,12 @@ export default function Settings() {
       const result = await DocumentPicker.getDocumentAsync({
         copyToCacheDirectory: true,
         multiple: false,
-        type: ["application/vnd.sqlite3", "application/x-sqlite3", "application/octet-stream", "*/*"],
+        type: [
+          "application/vnd.sqlite3",
+          "application/x-sqlite3",
+          "application/octet-stream",
+          "*/*",
+        ],
       });
 
       if (result.canceled) {
@@ -101,7 +109,10 @@ export default function Settings() {
       const file = result.assets[0];
 
       if (!file?.uri) {
-        Alert.alert("Backup invalido", "No se pudo leer el archivo seleccionado.");
+        Alert.alert(
+          "Backup invalido",
+          "No se pudo leer el archivo seleccionado.",
+        );
         return;
       }
 
@@ -114,7 +125,9 @@ export default function Settings() {
     } catch (error) {
       Alert.alert(
         "Error al importar",
-        error instanceof Error ? error.message : "No se pudo importar el backup.",
+        error instanceof Error
+          ? error.message
+          : "No se pudo importar el backup.",
       );
     } finally {
       setImporting(false);
@@ -131,8 +144,12 @@ export default function Settings() {
           onPress={() => router.push("/view/settings/change-password" as any)}
           className="flex-row items-center gap-4"
         >
-          <MaterialCommunityIcons name="form-textbox-password" size={24} color="black" />
-          
+          <MaterialCommunityIcons
+            name="form-textbox-password"
+            size={24}
+            color="black"
+          />
+
           <Text className="text-lg font-bold text-slate-900">
             Cambiar contraseña
           </Text>
@@ -150,13 +167,25 @@ export default function Settings() {
           }
           className="flex-row items-center gap-4"
         >
-          <MaterialCommunityIcons name="head-question-outline" size={24} color="black" />
+          <MaterialCommunityIcons
+            name="head-question-outline"
+            size={24}
+            color="black"
+          />
           <Text className="text-lg font-bold text-slate-900">
             Cambiar pregunta de seguridad
           </Text>
         </Pressable>
-        <Pressable disabled={exporting} onPress={handleExportDatabase} className="flex-row items-center gap-4">
-          <MaterialIcons name="settings-backup-restore" size={24} color="black" />
+        <Pressable
+          disabled={exporting}
+          onPress={handleExportDatabase}
+          className="flex-row items-center gap-4"
+        >
+          <MaterialIcons
+            name="settings-backup-restore"
+            size={24}
+            color="black"
+          />
           <Text className="text-lg font-bold text-slate-900">
             {exporting ? "Exportando..." : "Realizar backup"}
           </Text>
@@ -176,7 +205,7 @@ export default function Settings() {
 
         <Pressable
           disabled={loggingOut}
-          onPress={handleLogout}
+          onPress={handleLogout || console.log("Cerrando sesion...")}
           className="flex-row items-center gap-4"
           style={{ opacity: loggingOut ? 0.6 : 1 }}
         >

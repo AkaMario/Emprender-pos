@@ -10,6 +10,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -63,6 +64,15 @@ export default function TabLayout() {
             title: "Settings",
             tabBarIcon: ({ color }) => (
               <Ionicons size={28} name="settings" color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="dashboard"
+          options={{
+            title: "Dashboard",
+            tabBarIcon: ({ color }) => (
+              <MaterialIcons name="dashboard" size={24} color="black" />
             ),
           }}
         />

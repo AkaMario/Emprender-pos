@@ -1,8 +1,8 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface SidebarProps {
@@ -25,8 +25,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const sidebarItems: SidebarItem[] = [
     { label: "Home", route: "/(tabs)/", icon: "home" },
-    { label: "Explore", route: "/(tabs)/explore", icon: "airplane" },
+    { label: "Explore", route: "/(tabs)/explore", icon: "airplanemode-active" },
     { label: "Settings", route: "/(tabs)/settings", icon: "settings" },
+    { label: "Dashboard", route: "/(tabs)/dashboard", icon: "analytics" },
   ];
 
   const handleNavigate = (route: string) => {
@@ -53,10 +54,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         style={{ backgroundColor }}
       >
         <View className="flex-1 pt-4 gap-4">
-          <View className="px-4 pb-4 border-b border-gray-300 dark:border-gray-600">
+          <View className="px-4 pb-4 border-b border-gray-300 dark:border-gray-600 flex-row items-center justify-between">
             <Text className="text-xl font-bold" style={{ color: textColor }}>
               Menu
             </Text>
+            <Pressable onPress={onClose} className="p-2">
+              <MaterialIcons name="close" size={24} color="black" />
+            </Pressable>
           </View>
 
           {sidebarItems.map((item, index) => (
@@ -68,7 +72,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 backgroundColor: isOpen ? "transparent" : backgroundColor,
               }}
             >
-              <Ionicons name={item.icon as any} size={24} color={textColor} />
+              <MaterialIcons
+                name={item.icon as any}
+                size={24}
+                color={textColor}
+              />
               <Text
                 className="text-base font-medium ml-3"
                 style={{ color: textColor }}
