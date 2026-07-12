@@ -3,9 +3,11 @@ import { useAuth } from "@/context/auth";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { usePathname, useRouter } from "expo-router";
-import React from "react";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useFocusEffect, usePathname, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
+import { getUnreadAlertsCount } from "@/database/pos-database";
 
 interface NavbarProps {
   title?: string;
@@ -17,6 +19,10 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isHome = pathname === "/" || pathname.includes("index");
+  const isDashboard = pathname.includes("dashboard");
+  const isMenu = pathname.includes("menu");
+  const isSales = pathname.includes("sales");
+  const isReports = pathname.includes("reports");
   const isSettings = pathname.includes("settings");
   const isDark = colorScheme === "dark";
   const backgroundColor = isDark
@@ -25,6 +31,36 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
   const textColor = isDark ? "#fff" : "#000";
 
   const { username } = useAuth();
+  const [alertCount, setAlertCount] = useState(0);
+
+  const loadAlertCount = useCallback(async () => {
+    setAlertCount(await getUnreadAlertsCount());
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
+
+      async function loadFocusedAlertCount() {
+        const count = await getUnreadAlertsCount();
+        if (mounted) {
+          setAlertCount(count);
+        }
+      }
+
+      loadFocusedAlertCount();
+
+      return () => {
+        mounted = false;
+      };
+    }, [])
+  );
+
+  useEffect(() => {
+    const intervalId = setInterval(loadAlertCount, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [loadAlertCount]);
 
   return (
     <View
@@ -41,16 +77,20 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
         </TouchableOpacity>
       )}
 
-      {isHome && (
+      {(isHome || isDashboard || isMenu || isSales || isReports) && (
         <Text
           className="text-lg font-bold flex-1 text-center"
           style={{ color: textColor }}
         >
-          {username ? (
-            <Text className="mt-2 text-gray-800">
-              Bienvenido(a), {username}
-            </Text>
-          ) : null}
+          {isMenu
+            ? "Menu"
+            : isSales
+              ? "Ventas"
+              : isReports
+                ? "Reportes"
+              : username
+                ? `Bienvenido(a), ${username}`
+                : "Inicio"}
         </Text>
       )}
       {isSettings && (
@@ -80,7 +120,25 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
           </Pressable>
         </View>
       )}
-      <View className="w-8" />
+      {!isSettings ? (
+        <Pressable
+          onPress={() => router.push("/view/dashboard/alerts" as any)}
+          className="relative p-2"
+        >
+          <MaterialIcons
+            name="notifications-none"
+            size={26}
+            className="text-black dark:text-white"
+          />
+          {alertCount > 0 ? (
+            <View className="absolute right-1 top-1 h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1">
+              <Text className="text-xs font-black text-white">{alertCount}</Text>
+            </View>
+          ) : null}
+        </Pressable>
+      ) : (
+        <View className="w-8" />
+      )}
     </View>
   );
 }

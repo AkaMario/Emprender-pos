@@ -24,10 +24,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const textColor = isDark ? "#fff" : "#000";
 
   const sidebarItems: SidebarItem[] = [
-    { label: "Home", route: "/(tabs)/", icon: "home" },
-    { label: "Explore", route: "/(tabs)/explore", icon: "airplanemode-active" },
-    { label: "Settings", route: "/(tabs)/settings", icon: "settings" },
-    { label: "Dashboard", route: "/(tabs)/dashboard", icon: "analytics" },
+    { label: "Inicio", route: "/(tabs)/", icon: "home" },
+    { label: "Menu", route: "/(tabs)/menu", icon: "restaurant-menu" },
+    { label: "Ventas", route: "/(tabs)/sales", icon: "point-of-sale" },
+    { label: "Reportes", route: "/(tabs)/reports", icon: "bar-chart" },
+    { label: "Configuracion", route: "/(tabs)/settings", icon: "settings" },
   ];
 
   const handleNavigate = (route: string) => {

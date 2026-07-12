@@ -68,11 +68,38 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="menu"
+          options={{
+            title: "Menu",
+            tabBarIcon: ({ color }) => (
+              <MaterialIcons name="restaurant-menu" size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="sales"
+          options={{
+            title: "Ventas",
+            tabBarIcon: ({ color }) => (
+              <MaterialIcons name="point-of-sale" size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="reports"
+          options={{
+            title: "Reportes",
+            tabBarIcon: ({ color }) => (
+              <MaterialIcons name="bar-chart" size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="dashboard"
           options={{
             title: "Dashboard",
             tabBarIcon: ({ color }) => (
-              <MaterialIcons name="dashboard" size={24} color="black" />
+              <MaterialIcons name="dashboard" size={24} color={color} />
             ),
           }}
         />

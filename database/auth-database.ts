@@ -3,7 +3,7 @@ import { File, Paths } from "expo-file-system";
 import * as Crypto from "expo-crypto";
 
 const DATABASE_NAME = "pos.db";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const HASH_PREFIX = "sha256-v1";
 const HASH_ITERATIONS = 1500;
 
@@ -130,10 +130,193 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase) {
 
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
     CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+
+    CREATE TABLE IF NOT EXISTS inventory_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      unit TEXT NOT NULL,
+      current_quantity REAL NOT NULL DEFAULT 0,
+      low_stock_threshold REAL NOT NULL DEFAULT 0,
+      critical_stock_threshold REAL NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS dishes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      price INTEGER NOT NULL CHECK (price >= 0),
+      category TEXT NOT NULL,
+      size TEXT NOT NULL,
+      image_uri TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS dish_recipes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      dish_id INTEGER NOT NULL,
+      inventory_item_id INTEGER NOT NULL,
+      quantity REAL NOT NULL CHECK (quantity > 0),
+      FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
+      FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE RESTRICT
+    );
+
+    CREATE TABLE IF NOT EXISTS customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      phone TEXT,
+      address TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS sales (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sale_number TEXT NOT NULL UNIQUE,
+      order_type TEXT NOT NULL,
+      table_number TEXT,
+      customer_id INTEGER,
+      customer_name TEXT,
+      subtotal INTEGER NOT NULL,
+      delivery_fee INTEGER NOT NULL DEFAULT 0,
+      total INTEGER NOT NULL,
+      payment_method TEXT,
+      amount_received INTEGER,
+      change_amount INTEGER,
+      transfer_reference TEXT,
+      status TEXT NOT NULL,
+      cancellation_reason TEXT,
+      created_at INTEGER NOT NULL,
+      completed_at INTEGER,
+      cancelled_at INTEGER,
+      FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS sale_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sale_id INTEGER NOT NULL,
+      dish_id INTEGER NOT NULL,
+      dish_name TEXT NOT NULL,
+      unit_price INTEGER NOT NULL,
+      quantity INTEGER NOT NULL CHECK (quantity > 0),
+      total INTEGER NOT NULL,
+      FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+      FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE RESTRICT
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_movements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      inventory_item_id INTEGER NOT NULL,
+      sale_id INTEGER,
+      type TEXT NOT NULL,
+      quantity REAL NOT NULL,
+      reason TEXT,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE RESTRICT,
+      FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS alerts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      entity_name TEXT NOT NULL,
+      message TEXT NOT NULL,
+      source_key TEXT,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      resolved_at INTEGER
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_dishes_active_category ON dishes(is_active, category);
+    CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
+    CREATE INDEX IF NOT EXISTS idx_sales_status ON sales(status);
+    CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
+    CREATE INDEX IF NOT EXISTS idx_alerts_read ON alerts(is_read);
   `);
+
+  await ensureColumn(db, "alerts", "source_key", "TEXT");
+  await ensureColumn(db, "alerts", "resolved_at", "INTEGER");
+  await db.execAsync("CREATE INDEX IF NOT EXISTS idx_alerts_pending ON alerts(is_read, resolved_at)");
+  await db.execAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_alerts_source_key ON alerts(source_key)");
+
+  await removeKnownDemoPosData(db);
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
   await migratePlainTextSecrets(db);
+}
+
+async function ensureColumn(
+  db: SQLite.SQLiteDatabase,
+  tableName: string,
+  columnName: string,
+  definition: string
+) {
+  const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${tableName})`);
+
+  if (!columns.some((column) => column.name === columnName)) {
+    await db.execAsync(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  }
+}
+
+async function removeKnownDemoPosData(db: SQLite.SQLiteDatabase) {
+  const demoDishNames = [
+    "Mojito Clasico",
+    "Casa Tropical",
+    "Limonada de Coco",
+    "Old Fashioned",
+  ];
+  const demoInventoryNames = [
+    "Ron blanco",
+    "Hierbabuena",
+    "Limon",
+    "Soda",
+    "Gin",
+    "Maracuya",
+    "Coco",
+    "Whiskey",
+  ];
+
+  for (const name of demoDishNames) {
+    const row = await db.getFirstAsync<{ id: number; sales_count: number }>(
+      `SELECT dishes.id, COUNT(sale_items.id) as sales_count
+       FROM dishes
+       LEFT JOIN sale_items ON sale_items.dish_id = dishes.id
+       WHERE dishes.name = ?
+       GROUP BY dishes.id
+       LIMIT 1`,
+      [name]
+    );
+
+    if (row && row.sales_count === 0) {
+      await db.runAsync("DELETE FROM dishes WHERE id = ?", [row.id]);
+    }
+  }
+
+  for (const name of demoInventoryNames) {
+    const row = await db.getFirstAsync<{
+      id: number;
+      recipe_count: number;
+      movement_count: number;
+    }>(
+      `SELECT inventory_items.id,
+        COUNT(DISTINCT dish_recipes.id) as recipe_count,
+        COUNT(DISTINCT inventory_movements.id) as movement_count
+       FROM inventory_items
+       LEFT JOIN dish_recipes ON dish_recipes.inventory_item_id = inventory_items.id
+       LEFT JOIN inventory_movements ON inventory_movements.inventory_item_id = inventory_items.id
+       WHERE inventory_items.name = ?
+       GROUP BY inventory_items.id
+       LIMIT 1`,
+      [name]
+    );
+
+    if (row && row.recipe_count === 0 && row.movement_count === 0) {
+      await db.runAsync("DELETE FROM inventory_items WHERE id = ?", [row.id]);
+    }
+  }
 }
 
 async function migratePlainTextSecrets(db: SQLite.SQLiteDatabase) {

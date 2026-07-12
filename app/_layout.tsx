@@ -37,6 +37,38 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
+            name="view/dashboard/alerts"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="view/dashboard/sale-detail"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="view/dashboard/new-sale"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="view/dashboard/supply-entry"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="view/dashboard/stock-out"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="view/dashboard/new-dish"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="view/menu/create"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="view/menu/edit"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
             name="modal"
             options={{ presentation: "modal", title: "Modal" }}
           />
