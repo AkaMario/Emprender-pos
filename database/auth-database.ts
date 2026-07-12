@@ -135,6 +135,7 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
       unit TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'Otro',
       current_quantity REAL NOT NULL DEFAULT 0,
       low_stock_threshold REAL NOT NULL DEFAULT 0,
       critical_stock_threshold REAL NOT NULL DEFAULT 0,
@@ -214,6 +215,10 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase) {
       type TEXT NOT NULL,
       quantity REAL NOT NULL,
       reason TEXT,
+      supplier TEXT,
+      invoice_number TEXT,
+      unit_cost INTEGER,
+      notes TEXT,
       created_at INTEGER NOT NULL,
       FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE RESTRICT,
       FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE SET NULL
@@ -225,6 +230,7 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase) {
       entity_name TEXT NOT NULL,
       message TEXT NOT NULL,
       source_key TEXT,
+      status TEXT NOT NULL DEFAULT 'Pendiente',
       is_read INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
       resolved_at INTEGER
@@ -238,7 +244,13 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase) {
   `);
 
   await ensureColumn(db, "alerts", "source_key", "TEXT");
+  await ensureColumn(db, "alerts", "status", "TEXT NOT NULL DEFAULT 'Pendiente'");
   await ensureColumn(db, "alerts", "resolved_at", "INTEGER");
+  await ensureColumn(db, "inventory_items", "category", "TEXT NOT NULL DEFAULT 'Otro'");
+  await ensureColumn(db, "inventory_movements", "supplier", "TEXT");
+  await ensureColumn(db, "inventory_movements", "invoice_number", "TEXT");
+  await ensureColumn(db, "inventory_movements", "unit_cost", "INTEGER");
+  await ensureColumn(db, "inventory_movements", "notes", "TEXT");
   await db.execAsync("CREATE INDEX IF NOT EXISTS idx_alerts_pending ON alerts(is_read, resolved_at)");
   await db.execAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_alerts_source_key ON alerts(source_key)");
 

@@ -5,7 +5,6 @@ import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-nativ
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   adjustInventoryItem,
-  createInventoryItem,
   getInventoryItems,
   type InventoryItem,
 } from "@/database/pos-database";
@@ -20,11 +19,11 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [quantity, setQuantity] = useState("");
-  const [reason, setReason] = useState(isEntry ? "Compra de insumos" : "Merma");
-  const [newName, setNewName] = useState("");
-  const [newUnit, setNewUnit] = useState("");
-  const [newLowStock, setNewLowStock] = useState("");
-  const [newCriticalStock, setNewCriticalStock] = useState("");
+  const [reason, setReason] = useState(isEntry ? "Compra" : "Merma");
+  const [supplier, setSupplier] = useState("");
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [unitCost, setUnitCost] = useState("");
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   const loadItems = useCallback(async () => {
@@ -49,31 +48,23 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
 
     setSaving(true);
     try {
-      let inventoryItemId = selectedItemId;
-
-      if (isEntry && !inventoryItemId) {
-        if (!newName.trim() || !newUnit.trim()) {
-          throw new Error("Crea un insumo con nombre y unidad antes de registrar la entrada.");
-        }
-
-        inventoryItemId = await createInventoryItem({
-          name: newName,
-          unit: newUnit,
-          currentQuantity: 0,
-          lowStockThreshold: Number(newLowStock || 0),
-          criticalStockThreshold: Number(newCriticalStock || 0),
-        });
-      }
-
-      if (!inventoryItemId) {
+      if (!selectedItemId) {
         throw new Error("Selecciona un insumo.");
       }
 
+      if (!isEntry && !reason.trim()) {
+        throw new Error("El motivo es obligatorio.");
+      }
+
       await adjustInventoryItem({
-        inventoryItemId,
+        inventoryItemId: selectedItemId,
         type: mode,
         quantity: numericQuantity,
         reason,
+        supplier,
+        invoiceNumber,
+        unitCost: unitCost ? Number(unitCost) : null,
+        notes,
       });
 
       Alert.alert("Inventario actualizado", "El movimiento fue registrado.", [
@@ -100,8 +91,8 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
       <ScrollView contentContainerClassName="gap-4 p-4 pb-10">
         <Text className="text-sm font-semibold text-slate-500">
           {isEntry
-            ? "Selecciona un insumo existente o crea uno nuevo para registrar entrada."
-            : "Selecciona el insumo y registra la salida por merma u otro motivo."}
+            ? "Selecciona un insumo y registra la compra o recepcion."
+            : "Selecciona el insumo y registra la salida por merma, daño o ajuste."}
         </Text>
 
         {items.length > 0 ? (
@@ -126,29 +117,37 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
           </View>
         ) : null}
 
-        {isEntry && !selectedItemId ? (
-          <View className="gap-3 rounded-3xl bg-white p-4 dark:bg-slate-900">
-            <Text className="text-base font-black text-slate-950 dark:text-white">Nuevo insumo</Text>
-            <Input value={newName} onChangeText={setNewName} placeholder="Nombre" />
-            <Input value={newUnit} onChangeText={setNewUnit} placeholder="Unidad (oz, g, und)" />
-            <Input value={newLowStock} onChangeText={(value) => setNewLowStock(value.replace(/[^0-9.]/g, ""))} placeholder="Umbral bajo" keyboardType="decimal-pad" />
-            <Input value={newCriticalStock} onChangeText={(value) => setNewCriticalStock(value.replace(/[^0-9.]/g, ""))} placeholder="Umbral critico" keyboardType="decimal-pad" />
-          </View>
-        ) : null}
-
-        {isEntry && items.length > 0 ? (
-          <Pressable onPress={() => setSelectedItemId(null)} className="rounded-2xl border border-dashed border-slate-300 p-4">
-            <Text className="text-center font-black text-slate-600">Crear insumo nuevo</Text>
-          </Pressable>
+        {items.length === 0 ? (
+          <Text className="rounded-2xl bg-white p-4 text-center font-semibold text-slate-500 dark:bg-slate-900">
+            Primero registra insumos en el modulo Inventario.
+          </Text>
         ) : null}
 
         <Input
           value={quantity}
           onChangeText={(value) => setQuantity(value.replace(/[^0-9.]/g, ""))}
-          placeholder="Cantidad"
+          placeholder={isEntry ? "Cantidad recibida" : "Cantidad a descontar"}
           keyboardType="decimal-pad"
         />
-        <Input value={reason} onChangeText={setReason} placeholder="Motivo" />
+        {isEntry ? (
+          <>
+            <Input value={supplier} onChangeText={setSupplier} placeholder="Proveedor (opcional)" />
+            <Input value={invoiceNumber} onChangeText={setInvoiceNumber} placeholder="Factura/comprobante (opcional)" />
+            <Input value={unitCost} onChangeText={(value) => setUnitCost(value.replace(/[^0-9]/g, ""))} placeholder="Costo unitario (opcional)" keyboardType="number-pad" />
+            <Input value={notes} onChangeText={setNotes} placeholder="Observaciones (opcional)" />
+          </>
+        ) : (
+          <>
+            <View className="flex-row flex-wrap gap-2">
+              {["Merma", "Daño", "Ajuste", "Caducado", "Otro"].map((item) => (
+                <Pressable key={item} onPress={() => setReason(item)} className={`rounded-full px-4 py-3 ${reason === item ? "bg-slate-950" : "bg-white dark:bg-slate-900"}`}>
+                  <Text className={`text-sm font-black ${reason === item ? "text-white" : "text-slate-700 dark:text-slate-200"}`}>{item}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Input value={notes} onChangeText={setNotes} placeholder="Observaciones adicionales (opcional)" />
+          </>
+        )}
 
         <Pressable
           disabled={saving}

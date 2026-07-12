@@ -69,6 +69,14 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
+            name="view/inventory/create"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="view/inventory/history"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
             name="modal"
             options={{ presentation: "modal", title: "Modal" }}
           />

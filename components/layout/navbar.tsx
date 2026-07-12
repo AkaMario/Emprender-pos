@@ -23,6 +23,7 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
   const isMenu = pathname.includes("menu");
   const isSales = pathname.includes("sales");
   const isReports = pathname.includes("reports");
+  const isInventory = pathname.includes("inventory");
   const isSettings = pathname.includes("settings");
   const isDark = colorScheme === "dark";
   const backgroundColor = isDark
@@ -77,7 +78,7 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
         </TouchableOpacity>
       )}
 
-      {(isHome || isDashboard || isMenu || isSales || isReports) && (
+      {(isHome || isDashboard || isMenu || isSales || isReports || isInventory) && (
         <Text
           className="text-lg font-bold flex-1 text-center"
           style={{ color: textColor }}
@@ -88,6 +89,8 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
               ? "Ventas"
               : isReports
                 ? "Reportes"
+                : isInventory
+                  ? "Inventario"
               : username
                 ? `Bienvenido(a), ${username}`
                 : "Inicio"}

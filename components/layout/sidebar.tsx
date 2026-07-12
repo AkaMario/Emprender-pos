@@ -27,6 +27,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { label: "Inicio", route: "/(tabs)/", icon: "home" },
     { label: "Menu", route: "/(tabs)/menu", icon: "restaurant-menu" },
     { label: "Ventas", route: "/(tabs)/sales", icon: "point-of-sale" },
+    { label: "Inventario", route: "/(tabs)/inventory", icon: "inventory-2" },
     { label: "Reportes", route: "/(tabs)/reports", icon: "bar-chart" },
     { label: "Configuracion", route: "/(tabs)/settings", icon: "settings" },
   ];

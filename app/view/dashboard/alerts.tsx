@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   formatSaleTime,
   getAlerts,
+  markAlertAsReordering,
   markAlertAsRead,
   type AlertItem,
 } from "@/database/pos-database";
@@ -26,6 +27,11 @@ export default function DashboardAlerts() {
 
   async function handleRead(id: number) {
     await markAlertAsRead(id);
+    await loadAlerts();
+  }
+
+  async function handleReorder(id: number) {
+    await markAlertAsReordering(id);
     await loadAlerts();
   }
 
@@ -81,11 +87,20 @@ export default function DashboardAlerts() {
                   </Text>
                 </View>
                 {!alert.isRead ? (
-                  <Pressable onPress={() => handleRead(alert.id)} className="rounded-full bg-slate-100 px-3 py-2 active:opacity-75 dark:bg-slate-800">
-                    <Text className="text-xs font-black text-slate-700 dark:text-slate-200">
-                      Leida
-                    </Text>
-                  </Pressable>
+                  <View className="gap-2">
+                    {alert.type.includes("Stock") ? (
+                      <Pressable onPress={() => handleReorder(alert.id)} className="rounded-full bg-orange-100 px-3 py-2 active:opacity-75">
+                        <Text className="text-xs font-black text-orange-700">
+                          {alert.status === "En proceso" ? "En proceso" : "Reordenar"}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                    <Pressable onPress={() => handleRead(alert.id)} className="rounded-full bg-slate-100 px-3 py-2 active:opacity-75 dark:bg-slate-800">
+                      <Text className="text-xs font-black text-slate-700 dark:text-slate-200">
+                        Leida
+                      </Text>
+                    </Pressable>
+                  </View>
                 ) : null}
               </View>
             </View>

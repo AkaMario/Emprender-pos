@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS inventory_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
   unit TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Otro',
   current_quantity REAL NOT NULL DEFAULT 0,
   low_stock_threshold REAL NOT NULL DEFAULT 0,
   critical_stock_threshold REAL NOT NULL DEFAULT 0,
@@ -107,6 +108,10 @@ CREATE TABLE IF NOT EXISTS inventory_movements (
   type TEXT NOT NULL,
   quantity REAL NOT NULL,
   reason TEXT,
+  supplier TEXT,
+  invoice_number TEXT,
+  unit_cost INTEGER,
+  notes TEXT,
   created_at INTEGER NOT NULL,
   FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE RESTRICT,
   FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE SET NULL
@@ -118,6 +123,7 @@ CREATE TABLE IF NOT EXISTS alerts (
   entity_name TEXT NOT NULL,
   message TEXT NOT NULL,
   source_key TEXT,
+  status TEXT NOT NULL DEFAULT 'Pendiente',
   is_read INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
   resolved_at INTEGER

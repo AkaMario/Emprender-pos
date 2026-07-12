@@ -4,6 +4,10 @@ export type DishCategory = "Coctel Tradicional" | "Especial de Casa" | "Bebida" 
 export type OrderType = "Mesa" | "Domicilio" | "Para Llevar";
 export type PaymentMethod = "Efectivo" | "Transferencia";
 export type SaleStatus = "Completada" | "Cancelada";
+export type InventoryCategory = "Fresco" | "Congelado" | "Bebida" | "Otro";
+export type InventoryUnit = "kg" | "lt" | "und" | "atado";
+export type InventoryStatus = "OK" | "Bajo" | "Critico";
+export type InventoryMovementType = "entry" | "stock_out" | "sale" | "cancel";
 
 export type Dish = {
   id: number;
@@ -29,9 +33,24 @@ export type InventoryItem = {
   id: number;
   name: string;
   unit: string;
+  category: InventoryCategory;
   currentQuantity: number;
   lowStockThreshold: number;
   criticalStockThreshold: number;
+  status: InventoryStatus;
+};
+
+export type InventoryMovement = {
+  id: number;
+  inventoryItemId: number;
+  type: InventoryMovementType;
+  quantity: number;
+  reason: string | null;
+  supplier: string | null;
+  invoiceNumber: string | null;
+  unitCost: number | null;
+  notes: string | null;
+  createdAt: number;
 };
 
 export type SaleSummary = {
@@ -61,6 +80,7 @@ export type AlertItem = {
   isRead: boolean;
   createdAt: number;
   resolvedAt: number | null;
+  status: string;
 };
 
 export type SaleDetail = {
@@ -188,9 +208,23 @@ type InventoryItemRow = {
   id: number;
   name: string;
   unit: string;
+  category: InventoryCategory;
   current_quantity: number;
   low_stock_threshold: number;
   critical_stock_threshold: number;
+};
+
+type InventoryMovementRow = {
+  id: number;
+  inventory_item_id: number;
+  type: InventoryMovementType;
+  quantity: number;
+  reason: string | null;
+  supplier: string | null;
+  invoice_number: string | null;
+  unit_cost: number | null;
+  notes: string | null;
+  created_at: number;
 };
 
 type AlertRow = {
@@ -199,6 +233,7 @@ type AlertRow = {
   entity_name: string;
   message: string;
   source_key: string | null;
+  status: string;
   is_read: number;
   created_at: number;
   resolved_at: number | null;
@@ -310,13 +345,36 @@ function mapCustomer(row: CustomerRow): Customer {
 }
 
 function mapInventoryItem(row: InventoryItemRow): InventoryItem {
+  const status = getInventoryStatus(
+    row.current_quantity,
+    row.low_stock_threshold,
+    row.critical_stock_threshold
+  );
+
   return {
     id: row.id,
     name: row.name,
     unit: row.unit,
+    category: row.category,
     currentQuantity: row.current_quantity,
     lowStockThreshold: row.low_stock_threshold,
     criticalStockThreshold: row.critical_stock_threshold,
+    status,
+  };
+}
+
+function mapInventoryMovement(row: InventoryMovementRow): InventoryMovement {
+  return {
+    id: row.id,
+    inventoryItemId: row.inventory_item_id,
+    type: row.type,
+    quantity: row.quantity,
+    reason: row.reason,
+    supplier: row.supplier,
+    invoiceNumber: row.invoice_number,
+    unitCost: row.unit_cost,
+    notes: row.notes,
+    createdAt: row.created_at,
   };
 }
 
@@ -341,7 +399,23 @@ function mapAlert(row: AlertRow): AlertItem {
     isRead: row.is_read === 1,
     createdAt: row.created_at,
     resolvedAt: row.resolved_at,
+    status: row.status,
   };
+}
+
+function getInventoryStatus(
+  currentQuantity: number,
+  lowStockThreshold: number,
+  criticalStockThreshold: number
+): InventoryStatus {
+  if (currentQuantity <= criticalStockThreshold) {
+    return "Critico";
+  }
+  if (currentQuantity <= lowStockThreshold) {
+    return "Bajo";
+  }
+
+  return "OK";
 }
 
 function getBusinessWindow(date: Date, dayOffset = 0) {
@@ -575,10 +649,29 @@ export async function getCustomers() {
   return rows.map(mapCustomer);
 }
 
-export async function getInventoryItems() {
+export async function getInventoryItems(options?: {
+  search?: string;
+  category?: string;
+  sortBy?: "name" | "stock";
+  criticalFirst?: boolean;
+}) {
   const db = await getDatabase();
+  const search = `%${(options?.search ?? "").trim().toLowerCase()}%`;
+  const category = options?.category ?? "Todos";
+  const orderBy = options?.criticalFirst
+    ? `CASE
+        WHEN current_quantity <= critical_stock_threshold THEN 0
+        WHEN current_quantity <= low_stock_threshold THEN 1
+        ELSE 2
+      END ASC, name ASC`
+    : options?.sortBy === "stock"
+      ? "current_quantity ASC, name ASC"
+      : "name ASC";
   const rows = await db.getAllAsync<InventoryItemRow>(
-    "SELECT * FROM inventory_items ORDER BY name ASC"
+    `SELECT * FROM inventory_items
+     WHERE LOWER(name) LIKE ? AND (? = 'Todos' OR category = ?)
+     ORDER BY ${orderBy}`,
+    [search, category, category]
   );
 
   return rows.map(mapInventoryItem);
@@ -586,23 +679,27 @@ export async function getInventoryItems() {
 
 export async function createInventoryItem(input: {
   name: string;
-  unit: string;
+  unit: InventoryUnit;
+  category: InventoryCategory;
   currentQuantity: number;
   lowStockThreshold: number;
-  criticalStockThreshold: number;
+  criticalStockThreshold?: number;
 }) {
   const db = await getDatabase();
   const now = Date.now();
+  const criticalStockThreshold =
+    input.criticalStockThreshold ?? Math.max(0, input.lowStockThreshold / 2);
   const result = await db.runAsync(
     `INSERT INTO inventory_items (
-      name, unit, current_quantity, low_stock_threshold, critical_stock_threshold, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      name, unit, category, current_quantity, low_stock_threshold, critical_stock_threshold, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.name.trim(),
       input.unit.trim(),
+      input.category,
       input.currentQuantity,
       input.lowStockThreshold,
-      input.criticalStockThreshold,
+      criticalStockThreshold,
       now,
       now,
     ]
@@ -617,6 +714,10 @@ export async function adjustInventoryItem(input: {
   type: "entry" | "stock_out";
   quantity: number;
   reason: string;
+  supplier?: string;
+  invoiceNumber?: string;
+  unitCost?: number | null;
+  notes?: string;
 }) {
   if (input.quantity <= 0) {
     throw new Error("La cantidad debe ser mayor a cero.");
@@ -645,13 +746,73 @@ export async function adjustInventoryItem(input: {
       [quantity, Date.now(), input.inventoryItemId]
     );
     await db.runAsync(
-      `INSERT INTO inventory_movements (inventory_item_id, type, quantity, reason, created_at)
-       VALUES (?, ?, ?, ?, ?)`,
-      [input.inventoryItemId, input.type, input.quantity, input.reason.trim(), Date.now()]
+      `INSERT INTO inventory_movements (
+        inventory_item_id, type, quantity, reason, supplier, invoice_number, unit_cost, notes, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        input.inventoryItemId,
+        input.type,
+        input.quantity,
+        input.reason.trim(),
+        input.supplier?.trim() || null,
+        input.invoiceNumber?.trim() || null,
+        input.unitCost ?? null,
+        input.notes?.trim() || null,
+        Date.now(),
+      ]
     );
   });
 
   await refreshStockAlerts();
+}
+
+export async function getInventoryItemById(id: number) {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<InventoryItemRow>(
+    "SELECT * FROM inventory_items WHERE id = ? LIMIT 1",
+    [id]
+  );
+
+  return row ? mapInventoryItem(row) : null;
+}
+
+export async function getInventoryMovements(options: {
+  inventoryItemId: number;
+  type?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const db = await getDatabase();
+  const params: Array<string | number> = [options.inventoryItemId];
+  const filters = ["inventory_item_id = ?"];
+
+  if (options.type && options.type !== "Todos") {
+    filters.push("type = ?");
+    params.push(options.type);
+  }
+
+  if (options.startDate) {
+    const start = parseReportDate(options.startDate);
+    start.setHours(0, 0, 0, 0);
+    filters.push("created_at >= ?");
+    params.push(start.getTime());
+  }
+
+  if (options.endDate) {
+    const end = parseReportDate(options.endDate);
+    end.setHours(23, 59, 59, 999);
+    filters.push("created_at <= ?");
+    params.push(end.getTime());
+  }
+
+  const rows = await db.getAllAsync<InventoryMovementRow>(
+    `SELECT * FROM inventory_movements
+     WHERE ${filters.join(" AND ")}
+     ORDER BY created_at DESC`,
+    params
+  );
+
+  return rows.map(mapInventoryMovement);
 }
 
 export async function createCustomer(name: string) {
@@ -940,14 +1101,26 @@ export async function refreshStockAlerts() {
           `UPDATE alerts
            SET type = ?, entity_name = ?, message = ?
            WHERE id = ?`,
-          [type, item.name, `${item.name}: ${item.current_quantity} disponible`, existing.id]
+          [
+            type,
+            item.name,
+            `${item.name}: ${item.current_quantity} disponible, minimo ${item.low_stock_threshold}`,
+            existing.id,
+          ]
         );
       } else if (!existing || existing.resolved_at !== null) {
         await db.runAsync(
           `INSERT OR REPLACE INTO alerts (
-            id, type, entity_name, message, source_key, is_read, created_at, resolved_at
-          ) VALUES (?, ?, ?, ?, ?, 0, ?, NULL)`,
-          [existing?.id ?? null, type, item.name, `${item.name}: ${item.current_quantity} disponible`, sourceKey, Date.now()]
+            id, type, entity_name, message, source_key, status, is_read, created_at, resolved_at
+          ) VALUES (?, ?, ?, ?, ?, 'Pendiente', 0, ?, NULL)`,
+          [
+            existing?.id ?? null,
+            type,
+            item.name,
+            `${item.name}: ${item.current_quantity} disponible, minimo ${item.low_stock_threshold}`,
+            sourceKey,
+            Date.now(),
+          ]
         );
       }
     } else {
@@ -985,6 +1158,11 @@ export async function getUnreadAlertsCount() {
 export async function markAlertAsRead(id: number) {
   const db = await getDatabase();
   await db.runAsync("UPDATE alerts SET is_read = 1 WHERE id = ?", [id]);
+}
+
+export async function markAlertAsReordering(id: number) {
+  const db = await getDatabase();
+  await db.runAsync("UPDATE alerts SET status = 'En proceso' WHERE id = ?", [id]);
 }
 
 export async function getReportsData(options?: {
