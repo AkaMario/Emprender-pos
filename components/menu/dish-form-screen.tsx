@@ -1,5 +1,7 @@
+import { Image } from "expo-image";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -14,12 +16,12 @@ import {
   getDishById,
   getDishRecipeItems,
   getInventoryItems,
+  getProductCategories,
   upsertDish,
   type DishCategory,
   type InventoryItem,
 } from "@/database/pos-database";
 
-const categories: DishCategory[] = ["Coctel Tradicional", "Especial de Casa", "Bebida", "Otro"];
 const sizes = ["5oz", "8oz", "10oz", "12oz", "14oz", "16oz"];
 
 interface DishFormScreenProps {
@@ -34,8 +36,10 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [category, setCategory] = useState(categories[0]);
+  const [categories, setCategories] = useState<DishCategory[]>([]);
+  const [category, setCategory] = useState("");
   const [size, setSize] = useState("10oz");
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [recipeQuantities, setRecipeQuantities] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
@@ -44,11 +48,13 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
     let mounted = true;
 
     async function loadData() {
-      const items = await getInventoryItems();
+      const [items, productCategories] = await Promise.all([getInventoryItems(), getProductCategories()]);
       if (!mounted) {
         return;
       }
       setInventoryItems(items);
+      setCategories(productCategories.map((item) => item.name));
+      if (!isEdit && productCategories[0]) setCategory(productCategories[0].name);
 
       if (!isEdit || !dishId) {
         return;
@@ -67,6 +73,7 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
       setPrice(String(dish.price));
       setCategory(dish.category);
       setSize(dish.size);
+      setImageUri(dish.imageUri);
       setRecipeQuantities(
         recipeItems.reduce<Record<number, string>>((result, item) => {
           result[item.inventoryItemId] = String(item.quantity);
@@ -82,13 +89,52 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
     };
   }, [dishId, isEdit]);
 
+  async function handlePickImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (result.canceled) return;
+
+    setImageUri(result.assets[0].uri);
+  }
+
+  async function handleTakePhoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert("Permiso requerido", "Se necesita acceso a la camara para tomar una foto.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (result.canceled) return;
+
+    setImageUri(result.assets[0].uri);
+  }
+
+  function handleImagePress() {
+    Alert.alert("Imagen del plato", "Selecciona una opcion", [
+      { text: "Tomar foto", onPress: handleTakePhoto },
+      { text: "Seleccionar de galeria", onPress: handlePickImage },
+      ...(imageUri ? [{ text: "Eliminar imagen", style: "destructive" as const, onPress: () => setImageUri(null) }] : []),
+      { text: "Cancelar", style: "cancel" },
+    ]);
+  }
+
   function updatePrice(value: string) {
     setPrice(value.replace(/[^0-9]/g, ""));
   }
 
   async function saveDish() {
-    if (!name.trim() || !price.trim()) {
-      Alert.alert("Campos requeridos", "Nombre y precio son obligatorios.");
+    if (!name.trim() || !price.trim() || !category) {
+      Alert.alert("Campos requeridos", "Nombre, precio y una categoria son obligatorios. Crea una categoria desde Configuraciones si aún no existe.");
       return;
     }
 
@@ -101,6 +147,7 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
         price: Number(price),
         category,
         size,
+        imageUri,
         recipeItems: Object.entries(recipeQuantities)
           .map(([inventoryItemId, quantity]) => ({
             inventoryItemId: Number(inventoryItemId),
@@ -138,9 +185,22 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
       <ScrollView contentContainerClassName="gap-4 p-4 pb-10">
         <View className="rounded-3xl bg-white p-4 dark:bg-slate-900">
           <Text className="text-sm font-black text-slate-500">Imagen del plato</Text>
-          <Pressable className="mt-3 h-32 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-            <MaterialIcons name="add-photo-alternate" size={34} color="#f97316" />
-            <Text className="mt-2 text-sm font-bold text-slate-500">Asociar imagen opcional</Text>
+          <Pressable
+            onPress={handleImagePress}
+            className="mt-3 h-32 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800"
+          >
+            {imageUri ? (
+              <Image
+                source={{ uri: imageUri }}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+              />
+            ) : (
+              <>
+                <MaterialIcons name="add-photo-alternate" size={34} color="#f97316" />
+                <Text className="mt-2 text-sm font-bold text-slate-500">Asociar imagen opcional</Text>
+              </>
+            )}
           </Pressable>
         </View>
 
@@ -179,6 +239,7 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
 
         <Field label="Categoria">
           <View className="flex-row flex-wrap gap-2">
+            {categories.length === 0 ? <Text className="text-sm font-semibold text-red-600">No hay categorias creadas. Agrega una desde Configuraciones.</Text> : null}
             {categories.map((item) => (
               <ChoicePill
                 key={item}

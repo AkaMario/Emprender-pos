@@ -1,10 +1,14 @@
 import { getDatabase } from "./auth-database";
 
-export type DishCategory = "Coctel Tradicional" | "Especial de Casa" | "Bebida" | "Otro";
+export type DishCategory = string;
+export type ProductCategory = {
+  id: number;
+  name: string;
+};
 export type OrderType = "Mesa" | "Domicilio" | "Para Llevar";
 export type PaymentMethod = "Efectivo" | "Transferencia";
 export type SaleStatus = "Completada" | "Cancelada";
-export type InventoryCategory = "Fresco" | "Congelado" | "Bebida" | "Otro";
+export type InventoryCategory = string;
 export type InventoryUnit = "kg" | "lt" | "und" | "atado";
 export type InventoryStatus = "OK" | "Bajo" | "Critico";
 export type InventoryMovementType = "entry" | "stock_out" | "sale" | "cancel";
@@ -271,7 +275,7 @@ type SaleItemJoinRow = {
 };
 
 type CategorySalesRow = {
-  category: DishCategory;
+  category: string;
   total: number;
 };
 
@@ -510,24 +514,127 @@ function comparePercent(current: number, previous: number) {
   return Math.round(((current - previous) / previous) * 100);
 }
 
-function normalizeCategoryFilter(category: string) {
-  if (category === "Cocteles") {
-    return "Coctel Tradicional";
-  }
-  if (category === "Especial") {
-    return "Especial de Casa";
-  }
-  if (category === "Bebidas") {
-    return "Bebida";
-  }
+type ProductCategoryRow = {
+  id: number;
+  name: string;
+};
 
-  return category;
+export async function getProductCategories() {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<ProductCategoryRow>(
+    "SELECT id, name FROM product_categories ORDER BY name COLLATE NOCASE"
+  );
+  return rows;
+}
+
+export async function createProductCategory(name: string) {
+  const normalizedName = name.trim();
+  if (!normalizedName) throw new Error("Escribe un nombre para la categoria.");
+
+  const db = await getDatabase();
+  const now = Date.now();
+  const result = await db.runAsync(
+    "INSERT INTO product_categories (name, created_at, updated_at) VALUES (?, ?, ?)",
+    [normalizedName, now, now]
+  );
+  return result.lastInsertRowId;
+}
+
+export async function updateProductCategory(id: number, name: string) {
+  const normalizedName = name.trim();
+  if (!normalizedName) throw new Error("Escribe un nombre para la categoria.");
+
+  const db = await getDatabase();
+  const existing = await db.getFirstAsync<{ name: string }>(
+    "SELECT name FROM product_categories WHERE id = ?", [id]
+  );
+  if (!existing) throw new Error("La categoria no existe.");
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      "UPDATE product_categories SET name = ?, updated_at = ? WHERE id = ?",
+      [normalizedName, Date.now(), id]
+    );
+    await db.runAsync("UPDATE dishes SET category = ?, updated_at = ? WHERE category = ?", [
+      normalizedName, Date.now(), existing.name
+    ]);
+  });
+}
+
+export async function deleteProductCategory(id: number) {
+  const db = await getDatabase();
+  const category = await db.getFirstAsync<{ name: string }>(
+    "SELECT name FROM product_categories WHERE id = ?", [id]
+  );
+  if (!category) return;
+
+  const usage = await db.getFirstAsync<{ count: number }>(
+    "SELECT COUNT(*) as count FROM dishes WHERE category = ?", [category.name]
+  );
+  if ((usage?.count ?? 0) > 0) {
+    throw new Error("No puedes eliminar una categoria que tiene productos asociados.");
+  }
+  await db.runAsync("DELETE FROM product_categories WHERE id = ?", [id]);
+}
+
+export async function getInventoryCategories() {
+  const db = await getDatabase();
+  return db.getAllAsync<ProductCategoryRow>(
+    "SELECT id, name FROM inventory_categories ORDER BY name COLLATE NOCASE"
+  );
+}
+
+export async function createInventoryCategory(name: string) {
+  const normalizedName = name.trim();
+  if (!normalizedName) throw new Error("Escribe un nombre para la categoria.");
+  const db = await getDatabase();
+  const now = Date.now();
+  const result = await db.runAsync(
+    "INSERT INTO inventory_categories (name, created_at, updated_at) VALUES (?, ?, ?)",
+    [normalizedName, now, now]
+  );
+  return result.lastInsertRowId;
+}
+
+export async function updateInventoryCategory(id: number, name: string) {
+  const normalizedName = name.trim();
+  if (!normalizedName) throw new Error("Escribe un nombre para la categoria.");
+  const db = await getDatabase();
+  const existing = await db.getFirstAsync<{ name: string }>(
+    "SELECT name FROM inventory_categories WHERE id = ?", [id]
+  );
+  if (!existing) throw new Error("La categoria no existe.");
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      "UPDATE inventory_categories SET name = ?, updated_at = ? WHERE id = ?",
+      [normalizedName, Date.now(), id]
+    );
+    await db.runAsync(
+      "UPDATE inventory_items SET category = ?, updated_at = ? WHERE category = ?",
+      [normalizedName, Date.now(), existing.name]
+    );
+  });
+}
+
+export async function deleteInventoryCategory(id: number) {
+  const db = await getDatabase();
+  const category = await db.getFirstAsync<{ name: string }>(
+    "SELECT name FROM inventory_categories WHERE id = ?", [id]
+  );
+  if (!category) return;
+  const usage = await db.getFirstAsync<{ count: number }>(
+    "SELECT COUNT(*) as count FROM inventory_items WHERE category = ?", [category.name]
+  );
+  if ((usage?.count ?? 0) > 0) {
+    throw new Error("No puedes eliminar una categoria que tiene insumos asociados.");
+  }
+  await db.runAsync("DELETE FROM inventory_categories WHERE id = ?", [id]);
 }
 
 export async function getDishes(options?: { search?: string; category?: string; includeInactive?: boolean }) {
   const db = await getDatabase();
   const search = `%${(options?.search ?? "").trim().toLowerCase()}%`;
-  const category = normalizeCategoryFilter(options?.category ?? "Todos");
+  const category = options?.category ?? "Todos";
   const includeInactive = options?.includeInactive ? 1 : 0;
 
   const rows = await db.getAllAsync<DishRow>(
@@ -1226,16 +1333,11 @@ export async function getReportsData(options?: {
     [range.start, range.end]
   );
   const categoryTotal = categoryRows.reduce((total, row) => total + row.total, 0);
-  const categories: DishCategory[] = ["Coctel Tradicional", "Especial de Casa", "Bebida", "Otro"];
-  const categorySales = categories.map((category) => {
-    const total = categoryRows.find((row) => row.category === category)?.total ?? 0;
-
-    return {
-      category,
-      total,
-      percentage: categoryTotal > 0 ? Math.round((total / categoryTotal) * 100) : 0,
-    };
-  });
+  const categorySales = categoryRows.map((row) => ({
+    category: row.category,
+    total: row.total,
+    percentage: categoryTotal > 0 ? Math.round((row.total / categoryTotal) * 100) : 0,
+  }));
 
   const dayRange = getDayWindow(reportDate);
   const hourlyRows = await db.getAllAsync<HourlySalesRow>(

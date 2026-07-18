@@ -2,9 +2,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { getInventoryItems, type InventoryItem } from "@/database/pos-database";
-
-const filters = ["Todos", "Fresco", "Congelado", "Bebida"];
+import { getInventoryCategories, getInventoryItems, type InventoryItem } from "@/database/pos-database";
 
 export function InventoryScreen() {
   const router = useRouter();
@@ -13,6 +11,7 @@ export function InventoryScreen() {
   const [category, setCategory] = useState("Todos");
   const [sortBy, setSortBy] = useState<"name" | "stock">("name");
   const [criticalFirst, setCriticalFirst] = useState(true);
+  const [filters, setFilters] = useState<string[]>([]);
 
   const loadItems = useCallback(async () => {
     setItems(await getInventoryItems({ search, category, sortBy, criticalFirst }));
@@ -20,6 +19,11 @@ export function InventoryScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      getInventoryCategories().then((categories) => {
+        const names = categories.map((item) => item.name);
+        setFilters(["Todos", ...names]);
+        setCategory((current) => current === "Todos" || names.includes(current) ? current : "Todos");
+      });
       loadItems();
     }, [loadItems])
   );

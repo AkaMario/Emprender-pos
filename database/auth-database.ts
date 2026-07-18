@@ -3,7 +3,7 @@ import { File, Paths } from "expo-file-system";
 import * as Crypto from "expo-crypto";
 
 const DATABASE_NAME = "pos.db";
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 const HASH_PREFIX = "sha256-v1";
 const HASH_ITERATIONS = 1500;
 
@@ -135,7 +135,7 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
       unit TEXT NOT NULL,
-      category TEXT NOT NULL DEFAULT 'Otro',
+      category TEXT NOT NULL,
       current_quantity REAL NOT NULL DEFAULT 0,
       low_stock_threshold REAL NOT NULL DEFAULT 0,
       critical_stock_threshold REAL NOT NULL DEFAULT 0,
@@ -152,6 +152,20 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase) {
       size TEXT NOT NULL,
       image_uri TEXT,
       is_active INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS product_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL COLLATE NOCASE UNIQUE,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -261,9 +275,33 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase) {
   await db.execAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_alerts_source_key ON alerts(source_key)");
 
   await removeKnownDemoPosData(db);
+  await syncProductCategoriesFromDishes(db);
+  await syncInventoryCategoriesFromItems(db);
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
   await migratePlainTextSecrets(db);
+}
+
+async function syncProductCategoriesFromDishes(db: SQLite.SQLiteDatabase) {
+  const now = Date.now();
+  await db.runAsync(
+    `INSERT OR IGNORE INTO product_categories (name, created_at, updated_at)
+     SELECT DISTINCT TRIM(category), ?, ?
+     FROM dishes
+     WHERE TRIM(category) <> ''`,
+    [now, now]
+  );
+}
+
+async function syncInventoryCategoriesFromItems(db: SQLite.SQLiteDatabase) {
+  const now = Date.now();
+  await db.runAsync(
+    `INSERT OR IGNORE INTO inventory_categories (name, created_at, updated_at)
+     SELECT DISTINCT TRIM(category), ?, ?
+     FROM inventory_items
+     WHERE TRIM(category) <> ''`,
+    [now, now]
+  );
 }
 
 async function ensureColumn(

@@ -13,10 +13,9 @@ import {
   deleteOrDeactivateDish,
   formatCurrency,
   getDishes,
+  getProductCategories,
   type Dish,
 } from "@/database/pos-database";
-
-const categories = ["Todos", "Cocteles", "Especial", "Bebidas"];
 
 export function MenuScreen() {
   const router = useRouter();
@@ -24,6 +23,7 @@ export function MenuScreen() {
   const [search, setSearch] = useState("");
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>([]);
 
   const loadDishes = useCallback(async () => {
     setLoading(true);
@@ -36,6 +36,10 @@ export function MenuScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      getProductCategories().then((items) => {
+        setCategories(items.map((item) => item.name));
+        setSelectedCategory((current) => current === "Todos" || items.some((item) => item.name === current) ? current : "Todos");
+      });
       loadDishes();
     }, [loadDishes])
   );

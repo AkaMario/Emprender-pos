@@ -1,29 +1,38 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   createInventoryItem,
+  getInventoryCategories,
   type InventoryCategory,
   type InventoryUnit,
 } from "@/database/pos-database";
 
 const units: InventoryUnit[] = ["kg", "lt", "und", "atado"];
-const categories: InventoryCategory[] = ["Fresco", "Congelado", "Bebida", "Otro"];
 
 export default function CreateInventoryItem() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [unit, setUnit] = useState<InventoryUnit>("und");
-  const [category, setCategory] = useState<InventoryCategory>("Otro");
+  const [categories, setCategories] = useState<InventoryCategory[]>([]);
+  const [category, setCategory] = useState<InventoryCategory>("");
   const [initialStock, setInitialStock] = useState("");
   const [minimumStock, setMinimumStock] = useState("");
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    getInventoryCategories().then((items) => {
+      const names = items.map((item) => item.name);
+      setCategories(names);
+      setCategory(names[0] ?? "");
+    });
+  }, []);
+
   async function save() {
-    if (!name.trim()) {
-      Alert.alert("Nombre requerido", "Ingresa el nombre del insumo.");
+    if (!name.trim() || !category) {
+      Alert.alert("Campos requeridos", "Ingresa el nombre y selecciona una categoria de insumo. Créala desde Configuraciones si aún no existe.");
       return;
     }
 
@@ -66,6 +75,7 @@ export default function CreateInventoryItem() {
         </Field>
         <Field label="Categoria">
           <View className="flex-row flex-wrap gap-2">
+            {categories.length === 0 ? <Text className="text-sm font-semibold text-red-600">No hay categorias de insumos. Agrega una desde Configuraciones.</Text> : null}
             {categories.map((item) => <Pill key={item} label={item} selected={category === item} onPress={() => setCategory(item)} />)}
           </View>
         </Field>

@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS inventory_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
   unit TEXT NOT NULL,
-  category TEXT NOT NULL DEFAULT 'Otro',
+  category TEXT NOT NULL,
   current_quantity REAL NOT NULL DEFAULT 0,
   low_stock_threshold REAL NOT NULL DEFAULT 0,
   critical_stock_threshold REAL NOT NULL DEFAULT 0,
@@ -45,6 +45,20 @@ CREATE TABLE IF NOT EXISTS dishes (
   size TEXT NOT NULL,
   image_uri TEXT,
   is_active INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS product_categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS inventory_categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL COLLATE NOCASE UNIQUE,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -137,4 +151,4 @@ CREATE INDEX IF NOT EXISTS idx_alerts_read ON alerts(is_read);
 CREATE INDEX IF NOT EXISTS idx_alerts_pending ON alerts(is_read, resolved_at);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_alerts_source_key ON alerts(source_key);
 
-PRAGMA user_version = 2;
+PRAGMA user_version = 3;
