@@ -141,6 +141,17 @@ export default function Settings() {
     >
       <View className="gap-12">
         <Pressable
+          onPress={() => router.push("/view/qr/select-qr" as any)}
+          className="flex-row items-center gap-4"
+        >
+          <MaterialCommunityIcons name="qrcode" size={24} color="black" />
+
+          <Text className="text-lg font-bold text-slate-900">
+            QR de transferecias
+          </Text>
+        </Pressable>
+
+        <Pressable
           onPress={() => router.push("/view/settings/change-password" as any)}
           className="flex-row items-center gap-4"
         >

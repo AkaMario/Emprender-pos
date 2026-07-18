@@ -241,6 +241,12 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase) {
     CREATE INDEX IF NOT EXISTS idx_sales_status ON sales(status);
     CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
     CREATE INDEX IF NOT EXISTS idx_alerts_read ON alerts(is_read);
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT NOT NULL PRIMARY KEY,
+      value TEXT,
+      updated_at INTEGER NOT NULL
+    );
   `);
 
   await ensureColumn(db, "alerts", "source_key", "TEXT");

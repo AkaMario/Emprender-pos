@@ -1316,3 +1316,24 @@ export async function getSalesExportRowsForDate(dateText?: string) {
     [start.getTime(), end.getTime()]
   );
 }
+
+export async function getQrImageUri() {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<{ value: string }>(
+    "SELECT value FROM settings WHERE key = 'transfer_qr_uri' LIMIT 1"
+  );
+  return row?.value ?? null;
+}
+
+export async function saveQrImageUri(uri: string | null) {
+  const db = await getDatabase();
+  if (uri === null) {
+    await db.runAsync("DELETE FROM settings WHERE key = 'transfer_qr_uri'");
+    return;
+  }
+  await db.runAsync(
+    `INSERT OR REPLACE INTO settings (key, value, updated_at)
+     VALUES ('transfer_qr_uri', ?, ?)`,
+    [uri, Date.now()]
+  );
+}

@@ -181,9 +181,9 @@ export function HomeDashboard() {
             <Text className="text-xl font-black text-slate-950 dark:text-white">
               Ultimas ventas
             </Text>
-            <Text className="text-sm font-semibold text-slate-500">
+            {/* <Text className="text-sm font-semibold text-slate-500">
               Tiempo real
-            </Text>
+            </Text> */}
           </View>
 
           <View className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900">

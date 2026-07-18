@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
@@ -15,6 +16,7 @@ import {
   getCustomers,
   getDishes,
   getNextSaleNumber,
+  getQrImageUri,
   type Customer,
   type Dish,
   type OrderType,
@@ -30,6 +32,16 @@ const orderTypes: OrderType[] = ["Mesa", "Domicilio", "Para Llevar"];
 const paymentMethods: PaymentMethod[] = ["Efectivo", "Transferencia"];
 const DELIVERY_FEE = 6000;
 
+function formatCurrencyInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  return `$${digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+}
+
 export function PosScreen() {
   const router = useRouter();
   const [saleNumber, setSaleNumber] = useState("V-0001");
@@ -44,33 +56,38 @@ export function PosScreen() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Efectivo");
   const [amountReceived, setAmountReceived] = useState("");
   const [transferReference, setTransferReference] = useState("");
+  const [transferQrUri, setTransferQrUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [nextNumber, nextDishes, nextCustomers] = await Promise.all([
+    const [nextNumber, nextDishes, nextCustomers, qrUri] = await Promise.all([
       getNextSaleNumber(),
       getDishes({ search }),
       getCustomers(),
+      getQrImageUri(),
     ]);
 
     setSaleNumber(nextNumber);
     setDishes(nextDishes);
     setCustomers(nextCustomers);
+    setTransferQrUri(qrUri);
   }, [search]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
+    }, [loadData]),
   );
 
   const subtotal = useMemo(
-    () => cart.reduce((total, item) => total + item.dish.price * item.quantity, 0),
-    [cart]
+    () =>
+      cart.reduce((total, item) => total + item.dish.price * item.quantity, 0),
+    [cart],
   );
   const deliveryFee = orderType === "Domicilio" ? DELIVERY_FEE : 0;
   const total = subtotal + deliveryFee;
-  const changeAmount = paymentMethod === "Efectivo" ? Number(amountReceived || 0) - total : 0;
+  const changeAmount =
+    paymentMethod === "Efectivo" ? Number(amountReceived || 0) - total : 0;
 
   function addDish(dish: Dish) {
     if (dish.stockStatus === "Sin Stock") {
@@ -82,7 +99,9 @@ export function PosScreen() {
 
       if (existing) {
         return current.map((item) =>
-          item.dish.id === dish.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.dish.id === dish.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item,
         );
       }
 
@@ -96,9 +115,9 @@ export function PosScreen() {
         .map((item) =>
           item.dish.id === dishId
             ? { ...item, quantity: Math.max(0, item.quantity + delta) }
-            : item
+            : item,
         )
-        .filter((item) => item.quantity > 0)
+        .filter((item) => item.quantity > 0),
     );
   }
 
@@ -113,7 +132,10 @@ export function PosScreen() {
     }
 
     if (orderType === "Domicilio" && !customerId && !customerName.trim()) {
-      Alert.alert("Cliente requerido", "Selecciona o crea un cliente para domicilio.");
+      Alert.alert(
+        "Cliente requerido",
+        "Selecciona o crea un cliente para domicilio.",
+      );
       return;
     }
 
@@ -126,24 +148,43 @@ export function PosScreen() {
         customerName: customerName.trim(),
         deliveryFee,
         paymentMethod,
-        amountReceived: paymentMethod === "Efectivo" ? Number(amountReceived || 0) : undefined,
-        transferReference: paymentMethod === "Transferencia" ? transferReference : undefined,
-        items: cart.map((item) => ({ dishId: item.dish.id, quantity: item.quantity })),
+        amountReceived:
+          paymentMethod === "Efectivo"
+            ? Number(amountReceived || 0)
+            : undefined,
+        transferReference:
+          paymentMethod === "Transferencia" ? transferReference : undefined,
+        items: cart.map((item) => ({
+          dishId: item.dish.id,
+          quantity: item.quantity,
+        })),
       });
 
-      Alert.alert("Venta completada", `${saleNumber} fue registrada correctamente.`, [
-        {
-          text: "Ver detalle",
-          onPress: () =>
-            router.push({ pathname: "/view/dashboard/sale-detail", params: { id: String(saleId) } } as any),
-        },
-      ]);
+      Alert.alert(
+        "Venta completada",
+        `${saleNumber} fue registrada correctamente.`,
+        [
+          {
+            text: "Ver detalle",
+            onPress: () =>
+              router.push({
+                pathname: "/view/dashboard/sale-detail",
+                params: { id: String(saleId) },
+              } as any),
+          },
+        ],
+      );
       setCart([]);
       setAmountReceived("");
       setTransferReference("");
       await loadData();
     } catch (error) {
-      Alert.alert("Error", error instanceof Error ? error.message : "No se pudo registrar la venta.");
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "No se pudo registrar la venta.",
+      );
     } finally {
       setSaving(false);
     }
@@ -158,11 +199,20 @@ export function PosScreen() {
       <Section title="Tipo de orden">
         <View className="flex-row flex-wrap gap-2">
           {orderTypes.map((item) => (
-            <Choice key={item} label={item} selected={orderType === item} onPress={() => setOrderType(item)} />
+            <Choice
+              key={item}
+              label={item}
+              selected={orderType === item}
+              onPress={() => setOrderType(item)}
+            />
           ))}
         </View>
         {orderType === "Mesa" ? (
-          <Input value={tableNumber} onChangeText={setTableNumber} placeholder="Numero de mesa" />
+          <Input
+            value={tableNumber}
+            onChangeText={setTableNumber}
+            placeholder="Numero de mesa"
+          />
         ) : null}
         {orderType === "Domicilio" ? (
           <View className="gap-3">
@@ -181,11 +231,19 @@ export function PosScreen() {
                 ))}
               </View>
             </ScrollView>
-            <Input value={customerName} onChangeText={setCustomerName} placeholder="Crear cliente nuevo" />
+            <Input
+              value={customerName}
+              onChangeText={setCustomerName}
+              placeholder="Crear cliente nuevo"
+            />
           </View>
         ) : null}
         {orderType === "Para Llevar" ? (
-          <Input value={customerName} onChangeText={setCustomerName} placeholder="Nombre del cliente (opcional)" />
+          <Input
+            value={customerName}
+            onChangeText={setCustomerName}
+            placeholder="Nombre del cliente (opcional)"
+          />
         ) : null}
       </Section>
 
@@ -212,7 +270,9 @@ export function PosScreen() {
               <MaterialIcons name="local-bar" size={24} color="#f97316" />
             </View>
             <View className="flex-1">
-              <Text className="font-black text-slate-950 dark:text-white">{dish.name}</Text>
+              <Text className="font-black text-slate-950 dark:text-white">
+                {dish.name}
+              </Text>
               <Text className="text-xs font-bold text-slate-500">
                 {dish.size} · {dish.stockStatus}
               </Text>
@@ -226,27 +286,49 @@ export function PosScreen() {
 
       <Section title="Carrito">
         {cart.length === 0 ? (
-          <Text className="text-sm font-semibold text-slate-500">Agrega platos para iniciar la venta.</Text>
+          <Text className="text-sm font-semibold text-slate-500">
+            Agrega platos para iniciar la venta.
+          </Text>
         ) : null}
         {cart.map((item) => (
-          <View key={item.dish.id} className="rounded-2xl bg-white p-3 dark:bg-slate-900">
+          <View
+            key={item.dish.id}
+            className="rounded-2xl bg-white p-3 dark:bg-slate-900"
+          >
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1">
-                <Text className="font-black text-slate-950 dark:text-white">{item.dish.name}</Text>
+                <Text className="font-black text-slate-950 dark:text-white">
+                  {item.dish.name}
+                </Text>
                 <Text className="text-sm font-bold text-slate-500">
                   {formatCurrency(item.dish.price * item.quantity)}
                 </Text>
               </View>
               <View className="flex-row items-center gap-2">
-                <Pressable onPress={() => updateQuantity(item.dish.id, -1)} className="rounded-full bg-slate-100 p-2">
+                <Pressable
+                  onPress={() => updateQuantity(item.dish.id, -1)}
+                  className="rounded-full bg-slate-100 p-2"
+                >
                   <MaterialIcons name="remove" size={18} color="#0f172a" />
                 </Pressable>
-                <Text className="w-6 text-center font-black text-slate-950 dark:text-white">{item.quantity}</Text>
-                <Pressable onPress={() => updateQuantity(item.dish.id, 1)} className="rounded-full bg-slate-100 p-2">
+                <Text className="w-6 text-center font-black text-slate-950 dark:text-white">
+                  {item.quantity}
+                </Text>
+                <Pressable
+                  onPress={() => updateQuantity(item.dish.id, 1)}
+                  className="rounded-full bg-slate-100 p-2"
+                >
                   <MaterialIcons name="add" size={18} color="#0f172a" />
                 </Pressable>
-                <Pressable onPress={() => removeItem(item.dish.id)} className="rounded-full bg-red-100 p-2">
-                  <MaterialIcons name="delete-outline" size={18} color="#dc2626" />
+                <Pressable
+                  onPress={() => removeItem(item.dish.id)}
+                  className="rounded-full bg-red-100 p-2"
+                >
+                  <MaterialIcons
+                    name="delete-outline"
+                    size={18}
+                    color="#dc2626"
+                  />
                 </Pressable>
               </View>
             </View>
@@ -257,13 +339,47 @@ export function PosScreen() {
       <Section title="Pago">
         <View className="flex-row gap-2">
           {paymentMethods.map((item) => (
-            <Choice key={item} label={item} selected={paymentMethod === item} onPress={() => setPaymentMethod(item)} />
+            <Choice
+              key={item}
+              label={item}
+              selected={paymentMethod === item}
+              onPress={() => setPaymentMethod(item)}
+            />
           ))}
         </View>
         {paymentMethod === "Efectivo" ? (
-          <Input value={amountReceived} onChangeText={(value) => setAmountReceived(value.replace(/[^0-9]/g, ""))} placeholder="Monto recibido" keyboardType="number-pad" />
+          <Input
+            value={formatCurrencyInput(amountReceived)}
+            onChangeText={(value) =>
+              setAmountReceived(value.replace(/\D/g, ""))
+            }
+            placeholder="Monto recibido"
+            keyboardType="numeric"
+          />
         ) : (
-          <Input value={transferReference} onChangeText={setTransferReference} placeholder="Numero de referencia" />
+          <View className="gap-4">
+            {transferQrUri ? (
+              <View className="items-center gap-2">
+                <View className="overflow-hidden rounded-2xl">
+                  <Image
+                    source={{ uri: transferQrUri }}
+                    style={{ width: 400, height: 400 }}
+                    contentFit="contain"
+                  />
+                </View>
+              </View>
+            ) : null}
+              <View className="items-center gap-2">
+                <Text className="text-sm font-bold text-slate-500">
+                  Escanea el QR para transferir
+                </Text>
+              </View>
+            <Input
+              value={transferReference}
+              onChangeText={setTransferReference}
+              placeholder="Numero de referencia/transferencia"
+            />
+          </View>
         )}
       </Section>
 
@@ -271,7 +387,12 @@ export function PosScreen() {
         <TotalRow label="Subtotal" value={formatCurrency(subtotal)} />
         <TotalRow label="Domicilio" value={formatCurrency(deliveryFee)} />
         <TotalRow label="Total" value={formatCurrency(total)} strong />
-        {paymentMethod === "Efectivo" ? <TotalRow label="Cambio" value={formatCurrency(Math.max(changeAmount, 0))} /> : null}
+        {paymentMethod === "Efectivo" ? (
+          <TotalRow
+            label="Cambio"
+            value={formatCurrency(Math.max(changeAmount, 0))}
+          />
+        ) : null}
       </View>
 
       <Pressable
@@ -287,22 +408,40 @@ export function PosScreen() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <View className="gap-3">
-      <Text className="text-xl font-black text-slate-950 dark:text-white">{title}</Text>
+      <Text className="text-xl font-black text-slate-950 dark:text-white">
+        {title}
+      </Text>
       {children}
     </View>
   );
 }
 
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+function Choice({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       onPress={onPress}
       className={`rounded-full px-4 py-3 ${selected ? "bg-slate-950" : "bg-white dark:bg-slate-900"}`}
     >
-      <Text className={`text-sm font-black ${selected ? "text-white" : "text-slate-700 dark:text-slate-200"}`}>
+      <Text
+        className={`text-sm font-black ${selected ? "text-white" : "text-slate-700 dark:text-slate-200"}`}
+      >
         {label}
       </Text>
     </Pressable>
@@ -319,11 +458,25 @@ function Input(props: React.ComponentProps<typeof TextInput>) {
   );
 }
 
-function TotalRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function TotalRow({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
   return (
     <View className="flex-row items-center justify-between py-2">
-      <Text className={`${strong ? "text-lg" : "text-base"} font-bold text-slate-500`}>{label}</Text>
-      <Text className={`${strong ? "text-2xl" : "text-base"} font-black text-slate-950 dark:text-white`}>
+      <Text
+        className={`${strong ? "text-lg" : "text-base"} font-bold text-slate-500`}
+      >
+        {label}
+      </Text>
+      <Text
+        className={`${strong ? "text-2xl" : "text-base"} font-black text-slate-950 dark:text-white`}
+      >
         {value}
       </Text>
     </View>
