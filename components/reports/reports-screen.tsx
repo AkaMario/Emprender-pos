@@ -1,14 +1,15 @@
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import {
   formatCurrency,
   formatSaleTime,
   getReportsData,
-  getSalesExportRowsForDate,
+  getSalesExportRowsForRange,
   type CategorySales,
   type HourlySales,
   type ReportPeriod,
@@ -20,28 +21,73 @@ import {
 const periods: ReportPeriod[] = ["Dia", "Semana", "Mes", "Personalizado"];
 const categoryColors = ["#f97316", "#7c3aed", "#0ea5e9", "#64748b"];
 
-function todayText() {
-  return new Date().toISOString().slice(0, 10);
+function toDateText(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getMonday(date: Date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  return d;
+}
+
+function getSunday(date: Date) {
+  const monday = getMonday(date);
+  const sunday = new Date(monday);
+  sunday.setDate(sunday.getDate() + 6);
+  return sunday;
+}
+
+function formatDateRange(start: Date, end: Date) {
+  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
+  return `${start.toLocaleDateString("es-CO", opts)} - ${end.toLocaleDateString("es-CO", opts)}`;
+}
+
+function periodRangeText(period: ReportPeriod, date: Date, customStart?: string, customEnd?: string) {
+  if (period === "Dia") {
+    return date.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  }
+  if (period === "Semana") {
+    return `Semana del ${formatDateRange(getMonday(date), getSunday(date))}`;
+  }
+  if (period === "Mes") {
+    return date.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
+  }
+  if (customStart && customEnd) {
+    return `${customStart} al ${customEnd}`;
+  }
+  return date.toLocaleDateString("es-CO");
 }
 
 export function ReportsScreen() {
   const [period, setPeriod] = useState<ReportPeriod>("Dia");
-  const [date, setDate] = useState(todayText());
+  const [date, setDate] = useState(new Date());
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [compareDate, setCompareDate] = useState("");
   const [selectedBar, setSelectedBar] = useState<SalesByDay | null>(null);
   const [reports, setReports] = useState<ReportsData | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<"date" | "compare" | "customStart" | "customEnd">("date");
 
   const loadReports = useCallback(async () => {
     setReports(
       await getReportsData({
         period,
-        date,
+        date: toDateText(date),
         compareDate: compareDate.trim() || undefined,
         topLimit: 10,
+        customStart: period === "Personalizado" ? customStart || undefined : undefined,
+        customEnd: period === "Personalizado" ? customEnd || undefined : undefined,
       })
     );
-  }, [compareDate, date, period]);
+  }, [compareDate, date, period, customStart, customEnd]);
 
   useFocusEffect(
     useCallback(() => {
@@ -49,24 +95,55 @@ export function ReportsScreen() {
     }, [loadReports])
   );
 
-  async function exportDayCsv() {
+  async function handleExport() {
     setExporting(true);
     try {
-      const rows = await getSalesExportRowsForDate(date);
+      let startTs: number;
+      let endTs: number;
+      let label: string;
+
+      if (period === "Dia") {
+        const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setHours(23, 59, 59, 999);
+        startTs = start.getTime();
+        endTs = end.getTime();
+        label = toDateText(date);
+      } else if (period === "Semana") {
+        const start = getMonday(date);
+        start.setHours(0, 0, 0, 0);
+        const end = getSunday(date);
+        end.setHours(23, 59, 59, 999);
+        startTs = start.getTime();
+        endTs = end.getTime();
+        label = `${toDateText(start)}_${toDateText(end)}`;
+      } else if (period === "Mes") {
+        const end = new Date(date);
+        end.setHours(23, 59, 59, 999);
+        const start = new Date(end);
+        start.setDate(start.getDate() - 29);
+        start.setHours(0, 0, 0, 0);
+        startTs = start.getTime();
+        endTs = end.getTime();
+        label = toDateText(date);
+      } else {
+        if (!customStart || !customEnd) {
+          Alert.alert("Rango requerido", "Selecciona fecha de inicio y fin para exportar.");
+          return;
+        }
+        const start = new Date(customStart + "T00:00:00");
+        const end = new Date(customEnd + "T23:59:59");
+        startTs = start.getTime();
+        endTs = end.getTime();
+        label = `${customStart}_${customEnd}`;
+      }
+
+      const rows = await getSalesExportRowsForRange(startTs, endTs);
       const header = [
-        "Venta",
-        "Fecha",
-        "Hora",
-        "Tipo",
-        "Estado",
-        "Plato",
-        "Cantidad",
-        "Precio unitario",
-        "Total item",
-        "Subtotal",
-        "Domicilio",
-        "Total venta",
-        "Metodo pago",
+        "Venta", "Fecha", "Hora", "Tipo", "Estado", "Plato",
+        "Cantidad", "Precio unitario", "Total item", "Subtotal",
+        "Domicilio", "Total venta", "Metodo pago",
       ];
       const csvRows = rows.map((row) =>
         [
@@ -87,7 +164,7 @@ export function ReportsScreen() {
           .map((value) => `"${String(value).replace(/"/g, '""')}"`)
           .join(",")
       );
-      const file = new File(Paths.cache, `reporte-ventas-${date}.csv`);
+      const file = new File(Paths.cache, `reporte-ventas-${label}.csv`);
 
       file.create({ overwrite: true });
       file.write([header.join(","), ...csvRows].join("\n"));
@@ -107,6 +184,35 @@ export function ReportsScreen() {
     }
   }
 
+  function openPicker(target: "date" | "compare" | "customStart" | "customEnd") {
+    setPickerTarget(target);
+    setShowPicker(true);
+  }
+
+  function handlePickerChange(_event: DateTimePickerEvent, selectedDate?: Date) {
+    if (Platform.OS === "android") {
+      setShowPicker(false);
+    }
+    if (!selectedDate) return;
+
+    if (pickerTarget === "date") {
+      setDate(selectedDate);
+    } else if (pickerTarget === "compare") {
+      setCompareDate(toDateText(selectedDate));
+    } else if (pickerTarget === "customStart") {
+      setCustomStart(toDateText(selectedDate));
+    } else {
+      setCustomEnd(toDateText(selectedDate));
+    }
+  }
+
+  function pickerValue() {
+    if (pickerTarget === "date") return date;
+    if (pickerTarget === "compare") return compareDate ? new Date(compareDate + "T12:00:00") : new Date();
+    if (pickerTarget === "customStart") return customStart ? new Date(customStart + "T12:00:00") : new Date();
+    return customEnd ? new Date(customEnd + "T12:00:00") : new Date();
+  }
+
   return (
     <ScrollView
       className="flex-1 bg-slate-50 dark:bg-black"
@@ -115,7 +221,7 @@ export function ReportsScreen() {
     >
       <Pressable
         disabled={exporting}
-        onPress={exportDayCsv}
+        onPress={handleExport}
         className="flex-row items-center justify-center gap-2 rounded-2xl bg-orange-700 px-5 py-4 active:opacity-85"
       >
         <MaterialIcons name="file-download" size={22} color="white" />
@@ -123,8 +229,8 @@ export function ReportsScreen() {
           {exporting ? "Exportando..." : "Exportar Excel"}
         </Text>
       </Pressable>
+
       <View className="gap-3">
-        {/* <Text className="text-xl font-black text-slate-950 dark:text-white">Periodo</Text> */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
             {periods.map((item) => (
@@ -140,21 +246,63 @@ export function ReportsScreen() {
             ))}
           </View>
         </ScrollView>
-        <TextInput
-          value={date}
-          onChangeText={setDate}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#94a3b8"
-          className="rounded-2xl bg-white px-4 py-4 text-base font-semibold text-slate-950 dark:bg-slate-900 dark:text-white"
-        />
+
+        {period === "Personalizado" ? (
+          <View className="flex-row gap-2">
+            <Pressable
+              onPress={() => openPicker("customStart")}
+              className="flex-1 rounded-2xl bg-white px-4 py-4 dark:bg-slate-900"
+            >
+              <Text className="text-xs font-bold text-slate-500">Inicio</Text>
+              <Text className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
+                {customStart || "Seleccionar"}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => openPicker("customEnd")}
+              className="flex-1 rounded-2xl bg-white px-4 py-4 dark:bg-slate-900"
+            >
+              <Text className="text-xs font-bold text-slate-500">Fin</Text>
+              <Text className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
+                {customEnd || "Seleccionar"}
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={() => openPicker("date")}
+            className="rounded-2xl bg-white px-4 py-4 dark:bg-slate-900"
+          >
+            <Text className="text-xs font-bold text-slate-500">Fecha</Text>
+            <Text className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
+              {periodRangeText(period, date)}
+            </Text>
+          </Pressable>
+        )}
+
+        {showPicker && (
+          <DateTimePicker
+            value={pickerValue()}
+            mode="date"
+            display={Platform.OS === "ios" ? "inline" : "default"}
+            onChange={handlePickerChange}
+          />
+        )}
+
+        {Platform.OS === "ios" && showPicker ? (
+          <Pressable
+            onPress={() => setShowPicker(false)}
+            className="items-center rounded-2xl bg-slate-200 px-4 py-3 dark:bg-slate-800"
+          >
+            <Text className="font-bold text-slate-700 dark:text-slate-200">Cerrar calendario</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <View className="flex-row gap-3">
         <MetricCard label="Ventas" value={formatCurrency(reports?.totalSales ?? 0)} />
         <MetricCard label="Ordenes" value={String(reports?.totalOrders ?? 0)} />
       </View>
-
-      
 
       <ReportCard title="Ventas de la semana">
         <WeeklyBarChart
@@ -169,13 +317,15 @@ export function ReportsScreen() {
       </ReportCard>
 
       <ReportCard title="Tendencia horaria">
-        <TextInput
-          value={compareDate}
-          onChangeText={setCompareDate}
-          placeholder="Comparar con YYYY-MM-DD (opcional)"
-          placeholderTextColor="#94a3b8"
-          className="mb-3 rounded-2xl bg-slate-100 px-4 py-3 text-base font-semibold text-slate-950 dark:bg-slate-800 dark:text-white"
-        />
+        <Pressable
+          onPress={() => openPicker("compare")}
+          className="mb-3 rounded-2xl bg-slate-100 px-4 py-3 dark:bg-slate-800"
+        >
+          <Text className="text-xs font-bold text-slate-500">Comparar con</Text>
+          <Text className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
+            {compareDate || "Seleccionar fecha (opcional)"}
+          </Text>
+        </Pressable>
         <HourlyLineChart
           data={reports?.hourlySales ?? []}
           compareData={reports?.compareHourlySales ?? []}
@@ -300,7 +450,6 @@ function HourlyLineChart({ data, compareData }: { data: HourlySales[]; compareDa
     if (!result || item.orders > result.orders) {
       return item;
     }
-
     return result;
   }, null);
 

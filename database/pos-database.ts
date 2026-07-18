@@ -453,7 +453,7 @@ function getWeekWindow(date: Date) {
   return { start: start.getTime(), end: end.getTime() };
 }
 
-function getReportWindow(period: ReportPeriod, date = new Date()) {
+function getReportWindow(period: ReportPeriod, date = new Date(), customStart?: string, customEnd?: string) {
   if (period === "Dia") {
     return getDayWindow(date);
   }
@@ -469,6 +469,14 @@ function getReportWindow(period: ReportPeriod, date = new Date()) {
     start.setDate(start.getDate() - 29);
     start.setHours(0, 0, 0, 0);
 
+    return { start: start.getTime(), end: end.getTime() };
+  }
+
+  if (customStart && customEnd) {
+    const start = parseReportDate(customStart);
+    start.setHours(0, 0, 0, 0);
+    const end = parseReportDate(customEnd);
+    end.setHours(23, 59, 59, 999);
     return { start: start.getTime(), end: end.getTime() };
   }
 
@@ -1170,11 +1178,13 @@ export async function getReportsData(options?: {
   date?: string;
   compareDate?: string;
   topLimit?: number;
+  customStart?: string;
+  customEnd?: string;
 }) {
   const db = await getDatabase();
   const period = options?.period ?? "Dia";
   const reportDate = parseReportDate(options?.date);
-  const range = getReportWindow(period, reportDate);
+  const range = getReportWindow(period, reportDate, options?.customStart, options?.customEnd);
   const weekRange = getWeekWindow(reportDate);
   const summary = await db.getFirstAsync<{ total: number; orders: number }>(
     `SELECT COALESCE(SUM(total), 0) as total, COUNT(*) as orders
@@ -1314,6 +1324,22 @@ export async function getSalesExportRowsForDate(dateText?: string) {
      WHERE sales.created_at BETWEEN ? AND ?
      ORDER BY sales.created_at ASC, sale_items.id ASC`,
     [start.getTime(), end.getTime()]
+  );
+}
+
+export async function getSalesExportRowsForRange(startTimestamp: number, endTimestamp: number) {
+  const db = await getDatabase();
+
+  return db.getAllAsync<ExportSaleRow>(
+    `SELECT sales.sale_number, sales.created_at, sales.order_type, sales.status,
+      sale_items.dish_name, sale_items.quantity, sale_items.unit_price,
+      sale_items.total as item_total, sales.subtotal, sales.delivery_fee,
+      sales.total, sales.payment_method
+     FROM sales
+     INNER JOIN sale_items ON sale_items.sale_id = sales.id
+     WHERE sales.created_at BETWEEN ? AND ?
+     ORDER BY sales.created_at ASC, sale_items.id ASC`,
+    [startTimestamp, endTimestamp]
   );
 }
 
