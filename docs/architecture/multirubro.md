@@ -36,7 +36,7 @@ Inicio, menú lateral, catálogo, ventas, inventario/disponibilidad/agenda, oper
 | `database/pos-database.ts` | Adaptador operativo de restaurante, conservando tablas, contratos e IDs existentes. Incluye correcciones de consumo/cancelación y comandas. |
 | `database/auth-database.ts` | Conexión/bootstrap, migración v4, autenticación y backups. La separación completa de auth y migraciones queda como siguiente refactor. |
 
-Se mantiene Expo SDK 54 y la estructura Expo Router. Se consultaron [Expo SDK 54](https://docs.expo.dev/versions/v54.0.0/), [SQLite SDK 54](https://docs.expo.dev/versions/v54.0.0/sdk/sqlite/) y [Router SDK 54](https://docs.expo.dev/versions/v54.0.0/sdk/router/) antes de escribir código. No se añadió otro framework ni un backend externo.
+El proyecto usa Expo SDK 57 y conserva la estructura Expo Router. La implementación original se basó en la documentación de [Expo SDK 54](https://docs.expo.dev/versions/v54.0.0/), [SQLite SDK 54](https://docs.expo.dev/versions/v54.0.0/sdk/sqlite/) y [Router SDK 54](https://docs.expo.dev/versions/v54.0.0/sdk/router/). La actualización sigue las [notas de SDK 57](https://expo.dev/changelog/sdk-57) y la [migración de imports de Expo Router](https://docs.expo.dev/router/migrate/sdk-55-to-56/).
 
 ## Modelo de datos activo
 

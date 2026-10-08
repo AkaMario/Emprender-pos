@@ -11,9 +11,9 @@ export function BusinessCatalog({ inventory = false }: { inventory?: boolean }) 
   const { profile, definition } = useBusiness();
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const load = useCallback(() => getOfferings(search, true), [search]);
-  const { data, error, loading, reload, setError } = useBusinessQuery(load, []);
-  const items = inventory ? data.filter((item) => item.kind === "product" || item.kind === "packaging" || item.kind === "asset") : data;
+  const load = useCallback(async () => ({ items: await getOfferings(search, true), now: Date.now() }), [search]);
+  const { data, error, loading, reload, setError } = useBusinessQuery(load, { items: [], now: 0 });
+  const items = inventory ? data.items.filter((item) => item.kind === "product" || item.kind === "packaging" || item.kind === "asset") : data.items;
   async function condition(id: number, maintenance: boolean) {
     try { await setAssetCondition(id, maintenance ? "maintenance" : "usable"); await reload(); }
     catch (cause) { setError(errorMessage(cause)); }
@@ -32,7 +32,7 @@ export function BusinessCatalog({ inventory = false }: { inventory?: boolean }) 
       {(item.kind === "product" || item.kind === "packaging") && <Copy>Existencias: {formatQuantity(item.stock_atoms, item.unit)} {item.unit}{item.stock_atoms <= item.low_stock_atoms ? " · Stock bajo" : ""}</Copy>}
       {item.sku && <Copy>SKU: {item.sku}{item.barcode ? ` · Código: ${item.barcode}` : ""}</Copy>}
       {item.lot_code && <Copy>Lote: {item.lot_code}</Copy>}
-      {item.expires_at && <Copy>Vence: {new Date(item.expires_at).toLocaleDateString("es-CO")}{item.expires_at <= Date.now() ? " · Vencido" : ""}</Copy>}
+      {item.expires_at && <Copy>Vence: {new Date(item.expires_at).toLocaleDateString("es-CO")}{item.expires_at <= data.now ? " · Vencido" : ""}</Copy>}
       {item.kind === "asset" && <Copy>{item.condition === "maintenance" ? "En mantenimiento" : "Operativo · Consulta el calendario de reservas"} · Garantía: {formatMoney(item.deposit_minor)}</Copy>}
       {item.kind === "service" && <Copy>Duración: {item.duration_minutes} minutos</Copy>}
       <View className="flex-row flex-wrap gap-2">

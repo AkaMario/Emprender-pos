@@ -9,8 +9,8 @@ import { useBusinessQuery } from "./use-query";
 const STATES: Record<string, string> = { reserved: "Reservado", delivered: "Entregado", returned: "Devuelto", completed: "Finalizado", cancelled: "Cancelado", pending: "Pendiente de entrega", revoked: "Acceso revocado", active: "Activo" };
 export function BusinessOperations() {
   const { profile, definition } = useBusiness();
-  const load = useCallback(async () => ({ ...await getOperations(), staff: await getStaff() }), []);
-  const { data, loading, error, setError, reload } = useBusinessQuery(load, { bookings: [], accesses: [], subscriptions: [], movements: [], staff: [] });
+  const load = useCallback(async () => ({ ...await getOperations(), staff: await getStaff(), now: Date.now() }), []);
+  const { data, loading, error, setError, reload } = useBusinessQuery(load, { bookings: [], accesses: [], subscriptions: [], movements: [], staff: [], now: 0 });
   const [staffName, setStaffName] = useState(""); const [busy, setBusy] = useState(false);
   const [day, setDay] = useState(""); const [payment, setPayment] = useState<"Efectivo" | "Transferencia">("Efectivo");
   async function run(work: () => Promise<unknown>) {
@@ -47,7 +47,7 @@ export function BusinessOperations() {
       <Choices label="Medio de pago de renovación" value={payment} options={[{ value: "Efectivo", label: "Efectivo" }, { value: "Transferencia", label: "Transferencia" }]} onChange={setPayment} />
       {!data.subscriptions.length && <Copy>No hay suscripciones registradas.</Copy>}
       {data.subscriptions.map((sub) => <Card key={sub.id}><Heading>{sub.name}</Heading><Copy>{sub.customer_name} · {STATES[sub.state]}</Copy><Copy>Próximo ciclo: {new Date(sub.next_due_at).toLocaleString("es-CO")} · {formatMoney(sub.price_minor)}</Copy>
-        {sub.state === "active" && <><Button title={`Registrar cobro de renovación · ${formatMoney(sub.price_minor)}`} disabled={busy || sub.next_due_at > Date.now()} onPress={() => { void run(() => renewSubscription(sub.id, sub.next_due_at, payment)); }} /><Button title="Cancelar próximas renovaciones" secondary disabled={busy} onPress={() => { void run(() => cancelSubscription(sub.id)); }} /></>}
+        {sub.state === "active" && <><Button title={`Registrar cobro de renovación · ${formatMoney(sub.price_minor)}`} disabled={busy || sub.next_due_at > data.now} onPress={() => { void run(() => renewSubscription(sub.id, sub.next_due_at, payment)); }} /><Button title="Cancelar próximas renovaciones" secondary disabled={busy} onPress={() => { void run(() => cancelSubscription(sub.id)); }} /></>}
       </Card>)}
     </>}
     {!temporal && <><Heading>Historial de inventario</Heading><Copy>Últimos 100 movimientos.</Copy>{!data.movements.length && <Copy>No hay movimientos registrados.</Copy>}{data.movements.map((movement) => <Card key={movement.id}><Heading>{movement.name}</Heading><Copy>{movement.delta_atoms > 0 ? "+" : ""}{formatQuantity(movement.delta_atoms, movement.unit)} {movement.unit} · {movement.reason}</Copy><Copy>{new Date(movement.created_at).toLocaleString("es-CO")}</Copy></Card>)}</>}

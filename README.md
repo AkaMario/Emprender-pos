@@ -1,6 +1,6 @@
 # Emprender — POS para cinco tipos de emprendimiento
 
-Aplicación Expo SDK 54, React Native y SQLite. Cada negocio elige **un solo tipo** antes de entrar al POS: restaurante/preparación, alquiler, venta por medida, retail o servicios/contenido digital.
+Aplicación Expo SDK 57, React Native y SQLite. Cada negocio elige **un solo tipo** antes de entrar al POS: restaurante/preparación, alquiler, venta por medida, retail o servicios/contenido digital.
 
 El restaurante conserva el POS, los datos y las rutas existentes. Las otras modalidades tienen catálogo, venta, inventario u operación y reportes propios. La selección se guarda con la base de datos; no se mezclan modelos ni se permite cambiar el tipo de un negocio con información.
 
@@ -11,7 +11,7 @@ npm install
 npm start
 ```
 
-Usar Expo Go o un development build compatible con SDK 54. También están disponibles `npm run android`, `npm run ios` y `npm run web`. El servidor de desarrollo agrega las cabeceras necesarias para SQLite web; un servidor de exportación estática debe configurar COOP `same-origin` y COEP `require-corp`.
+Usar Expo Go o un development build compatible con SDK 57. Después de actualizar dependencias, detener los servidores Expo anteriores y ejecutar `npx expo start --clear`. También están disponibles `npm run android`, `npm run ios` y `npm run web`. El servidor de desarrollo agrega las cabeceras necesarias para SQLite web; un servidor de exportación estática debe configurar COOP `same-origin` y COEP `require-corp`.
 
 Al abrir por primera vez: crear/iniciar sesión → dar nombre al negocio → seleccionar tipo → registrar catálogo → operar. Si la base contiene información de restaurante, el selector conserva ese modo. Los backups se exportan/restauran desde Configuración y contienen también el perfil del negocio.
 

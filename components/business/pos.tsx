@@ -17,7 +17,7 @@ export function BusinessPos() {
   const { data, error, setError, loading } = useBusinessQuery(load, { offerings: [], staff: [], qr: null });
   const [selected, setSelected] = useState<Offering | null>(null);
   const [quantity, setQuantity] = useState("1"); const [unit, setUnit] = useState<Unit>("und");
-  const [start, setStart] = useState(localDateInput(Date.now() + 3_600_000)); const [end, setEnd] = useState(localDateInput(Date.now() + 86_400_000)); const [staffId, setStaffId] = useState(0);
+  const [start, setStart] = useState(() => localDateInput(Date.now() + 3_600_000)); const [end, setEnd] = useState(() => localDateInput(Date.now() + 86_400_000)); const [staffId, setStaffId] = useState(0);
   const [cart, setCart] = useState<CartLine[]>([]); const [customer, setCustomer] = useState("");
   const [payment, setPayment] = useState<"Efectivo" | "Transferencia">("Efectivo"); const [received, setReceived] = useState("");
   const [saving, setSaving] = useState(false); const [customTare, setTare] = useState("0");
