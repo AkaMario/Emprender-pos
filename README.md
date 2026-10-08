@@ -19,7 +19,12 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 3. Generar apk
 
    ```bash
-   npx eas build --platform android --profile preview
+   npx eas-cli build --platform android --profile preview
+
+   o
+
+   npm install -g eas-cli
+   eas build --platform android --profile preview
    ```
 
 In the output, you'll find options to open the app in a
