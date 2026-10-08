@@ -1,18 +1,19 @@
 {
   "expo": {
-    "name": "pos",
-    "slug": "pos",
+    "name": "emprender",
+    "slug": "emprender",
+    "owner": "mariou",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "pos",
+    "scheme": "emprender",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "package": "com.pos.app",
+      "package": "com.emprender.app",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -52,7 +53,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "397dbaa1-7eab-44a8-99a6-5b114c03abdf"
+        "projectId": "8606f1f5-d5c5-41aa-b5be-8f5a4a55bf2b"
       }
     }
   }
