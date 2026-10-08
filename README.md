@@ -1,61 +1,45 @@
-# Welcome to your Expo app 👋
+# Emprender — POS para cinco tipos de emprendimiento
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación Expo SDK 54, React Native y SQLite. Cada negocio elige **un solo tipo** antes de entrar al POS: restaurante/preparación, alquiler, venta por medida, retail o servicios/contenido digital.
 
-## Get started
+El restaurante conserva el POS, los datos y las rutas existentes. Las otras modalidades tienen catálogo, venta, inventario u operación y reportes propios. La selección se guarda con la base de datos; no se mezclan modelos ni se permite cambiar el tipo de un negocio con información.
 
-1. Install dependencies
+## Desarrollo
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-3. Generar apk
-
-   ```bash
-   npx eas-cli build --platform android --profile preview
-
-   o
-
-   npm install -g eas-cli
-   eas build --platform android --profile preview
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```sh
+npm install
+npm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Usar Expo Go o un development build compatible con SDK 54. También están disponibles `npm run android`, `npm run ios` y `npm run web`. El servidor de desarrollo agrega las cabeceras necesarias para SQLite web; un servidor de exportación estática debe configurar COOP `same-origin` y COEP `require-corp`.
 
-## Learn more
+Al abrir por primera vez: crear/iniciar sesión → dar nombre al negocio → seleccionar tipo → registrar catálogo → operar. Si la base contiene información de restaurante, el selector conserva ese modo. Los backups se exportan/restauran desde Configuración y contienen también el perfil del negocio.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Verificación
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Para el runner de pruebas usar Node 22.14 o posterior, con SQLite incorporado.
 
-## Join the community
+```sh
+npm test
+npm run typecheck
+npm run lint
+npx expo export --platform web --output-dir /tmp/emprender-web
+```
 
-Join our community of developers creating universal apps.
+Si TypeScript conserva tipos de rutas antiguos, iniciar Expo para regenerar `.expo/types`.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Las pruebas usan SQLite en memoria y los repositorios/migraciones reales; no escriben en `database/pos.db`. La migración aditiva a v4 se ejecuta al abrir la app. `database/schema.sql` sigue siendo el bootstrap legado v3; `database/business-schema.ts` define la ampliación v4. `npm run db:reference` regenera el SQL documentado desde esa fuente.
+
+## Alcance
+
+La operación actual es local. Granel recibe cantidad/tara desde la app; alquileres y citas rechazan solapamientos en esta base; las suscripciones se renuevan al registrar un cobro manual. Compartir contenido y registrar su entrega/revocación no modifica permisos de una plataforma externa. Cobros automáticos, básculas, varias cajas, KDS remoto y control de acceso externo requieren sus respectivas integraciones.
+
+El [diseño y roadmap actualizado](docs/architecture/multirubro.md) documenta entidades, flujos, reglas, límites de la primera implementación y siguientes etapas.
+
+## APK de prueba
+
+```sh
+npx eas-cli build --platform android --profile preview
+```
+
+Requiere la cuenta/configuración EAS del proyecto. No se generó ni publicó un APK durante esta reestructuración.

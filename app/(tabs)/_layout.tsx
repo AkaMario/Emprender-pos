@@ -11,8 +11,10 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useBusiness } from "@/context/business";
 
 export default function TabLayout() {
+  const { definition } = useBusiness();
   const { isAuthenticated, isLoading } = useAuth();
   const colorScheme = useColorScheme();
   const router = useRouter();
@@ -70,7 +72,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="menu"
           options={{
-            title: "Menu",
+            title: definition?.catalog,
             tabBarIcon: ({ color }) => (
               <MaterialIcons name="restaurant-menu" size={24} color={color} />
             ),
@@ -97,11 +99,15 @@ export default function TabLayout() {
         <Tabs.Screen
           name="inventory"
           options={{
-            title: "Inventario",
+            title: definition?.inventory,
             tabBarIcon: ({ color }) => (
               <MaterialIcons name="inventory-2" size={24} color={color} />
             ),
           }}
+        />
+        <Tabs.Screen
+          name="operations"
+          options={{ title: definition?.operations }}
         />
         <Tabs.Screen
           name="dashboard"

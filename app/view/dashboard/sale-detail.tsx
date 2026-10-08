@@ -4,6 +4,8 @@ import React, { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/context/auth";
+import { useBusiness } from "@/context/business";
+import { BusinessSaleDetail } from "@/components/business/sale-detail";
 import { getUserByCredentials } from "@/database/auth-database";
 import {
   cancelSale,
@@ -14,6 +16,10 @@ import {
 } from "@/database/pos-database";
 
 export default function SaleDetailScreen() {
+  return useBusiness().isRestaurant ? <RestaurantSaleDetail /> : <BusinessSaleDetail />;
+}
+
+function RestaurantSaleDetail() {
   const router = useRouter();
   const { username } = useAuth();
   const { id } = useLocalSearchParams<{ id?: string }>();

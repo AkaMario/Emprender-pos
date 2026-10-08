@@ -1,4 +1,5 @@
 import { useAuth } from "@/context/auth";
+import { useBusiness } from "@/context/business";
 import {
   exportDatabaseFile,
   importDatabaseBackup,
@@ -24,6 +25,7 @@ export const unstable_settings = {
 };
 
 export default function Settings() {
+  const { profile, definition, isRestaurant } = useBusiness();
   const { logout } = useAuth();
   const router = useRouter();
   const [exporting, setExporting] = React.useState(false);
@@ -140,7 +142,12 @@ export default function Settings() {
       contentContainerClassName="px-6 py-5"
     >
       <View className="gap-12">
-        <Pressable
+        <View className="gap-2 rounded-2xl bg-slate-100 p-4 dark:bg-slate-900">
+          <Text className="text-xl font-bold text-slate-950 dark:text-white">{profile?.name}</Text>
+          <Text className="text-base text-slate-700 dark:text-slate-200">{definition?.title}</Text>
+          <Text className="text-sm text-slate-500">Un solo tipo de emprendimiento por base de datos.</Text>
+        </View>
+        {isRestaurant && <Pressable
           onPress={() => router.push("/view/category/category-view" as any)}
           className="flex-row items-center gap-4"
         >
@@ -149,7 +156,7 @@ export default function Settings() {
           <Text className="text-lg font-bold text-slate-900">
             Categorias de productos e insumos
           </Text>
-        </Pressable>
+        </Pressable>}
 
         <Pressable
           onPress={() => router.push("/view/qr/select-qr" as any)}

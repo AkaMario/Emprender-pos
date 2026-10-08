@@ -1,9 +1,10 @@
 import * as SQLite from "expo-sqlite";
 import { File, Paths } from "expo-file-system";
 import * as Crypto from "expo-crypto";
+import { BUSINESS_SCHEMA } from "./business-schema";
 
 const DATABASE_NAME = "pos.db";
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 const HASH_PREFIX = "sha256-v1";
 const HASH_ITERATIONS = 1500;
 
@@ -104,6 +105,10 @@ function normalizeAnswer(value: string) {
 }
 
 async function migrateDatabase(db: SQLite.SQLiteDatabase) {
+  const version = await db.getFirstAsync<{ user_version: number }>("PRAGMA user_version");
+  if ((version?.user_version ?? 0) > DATABASE_VERSION) {
+    throw new Error("Este backup requiere una versión más reciente de la aplicación.");
+  }
   await db.execAsync(`
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
@@ -274,11 +279,13 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase) {
   await db.execAsync("CREATE INDEX IF NOT EXISTS idx_alerts_pending ON alerts(is_read, resolved_at)");
   await db.execAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_alerts_source_key ON alerts(source_key)");
 
-  await removeKnownDemoPosData(db);
   await syncProductCategoriesFromDishes(db);
   await syncInventoryCategoriesFromItems(db);
 
-  await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
+  await db.withTransactionAsync(async () => {
+    await db.execAsync(BUSINESS_SCHEMA);
+    await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
+  });
   await migratePlainTextSecrets(db);
 }
 
@@ -317,64 +324,6 @@ async function ensureColumn(
   }
 }
 
-async function removeKnownDemoPosData(db: SQLite.SQLiteDatabase) {
-  const demoDishNames = [
-    "Mojito Clasico",
-    "Casa Tropical",
-    "Limonada de Coco",
-    "Old Fashioned",
-  ];
-  const demoInventoryNames = [
-    "Ron blanco",
-    "Hierbabuena",
-    "Limon",
-    "Soda",
-    "Gin",
-    "Maracuya",
-    "Coco",
-    "Whiskey",
-  ];
-
-  for (const name of demoDishNames) {
-    const row = await db.getFirstAsync<{ id: number; sales_count: number }>(
-      `SELECT dishes.id, COUNT(sale_items.id) as sales_count
-       FROM dishes
-       LEFT JOIN sale_items ON sale_items.dish_id = dishes.id
-       WHERE dishes.name = ?
-       GROUP BY dishes.id
-       LIMIT 1`,
-      [name]
-    );
-
-    if (row && row.sales_count === 0) {
-      await db.runAsync("DELETE FROM dishes WHERE id = ?", [row.id]);
-    }
-  }
-
-  for (const name of demoInventoryNames) {
-    const row = await db.getFirstAsync<{
-      id: number;
-      recipe_count: number;
-      movement_count: number;
-    }>(
-      `SELECT inventory_items.id,
-        COUNT(DISTINCT dish_recipes.id) as recipe_count,
-        COUNT(DISTINCT inventory_movements.id) as movement_count
-       FROM inventory_items
-       LEFT JOIN dish_recipes ON dish_recipes.inventory_item_id = inventory_items.id
-       LEFT JOIN inventory_movements ON inventory_movements.inventory_item_id = inventory_items.id
-       WHERE inventory_items.name = ?
-       GROUP BY inventory_items.id
-       LIMIT 1`,
-      [name]
-    );
-
-    if (row && row.recipe_count === 0 && row.movement_count === 0) {
-      await db.runAsync("DELETE FROM inventory_items WHERE id = ?", [row.id]);
-    }
-  }
-}
-
 async function migratePlainTextSecrets(db: SQLite.SQLiteDatabase) {
   const rows = await db.getAllAsync<UserRow>("SELECT * FROM users");
 
@@ -405,9 +354,14 @@ async function migratePlainTextSecrets(db: SQLite.SQLiteDatabase) {
 export async function getDatabase() {
   if (!databasePromise) {
     databasePromise = SQLite.openDatabaseAsync(DATABASE_NAME).then(async (db) => {
-      await migrateDatabase(db);
-      return db;
-    });
+      try {
+        await migrateDatabase(db);
+        return db;
+      } catch (error) {
+        await db.closeAsync();
+        throw error;
+      }
+    }).catch((error) => { databasePromise = null; throw error; });
   }
 
   return databasePromise;
@@ -729,6 +683,17 @@ export async function importDatabaseBackup(fileUri: string) {
     if (!hasUsersTable || !hasSessionsTable) {
       throw new Error("El archivo seleccionado no es un backup valido de POS.");
     }
+
+    const sourceVersion = await sourceDb.getFirstAsync<{ user_version: number }>("PRAGMA user_version");
+    if ((sourceVersion?.user_version ?? 0) > DATABASE_VERSION) {
+      throw new Error("Este backup pertenece a una versión más reciente. Actualiza la aplicación antes de importarlo.");
+    }
+    const integrity = await sourceDb.getFirstAsync<{ integrity_check: string }>("PRAGMA integrity_check");
+    if (integrity?.integrity_check !== "ok") throw new Error("El backup tiene errores de integridad.");
+    // Upgrade the staging database before replacing the current business.
+    await migrateDatabase(sourceDb);
+    const violations = await sourceDb.getAllAsync("PRAGMA foreign_key_check");
+    if (violations.length) throw new Error("El backup tiene relaciones de datos inválidas.");
 
     await SQLite.backupDatabaseAsync({
       sourceDatabase: sourceDb,

@@ -8,6 +8,7 @@ import { useFocusEffect, usePathname, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import { getUnreadAlertsCount } from "@/database/pos-database";
+import { useBusiness } from "@/context/business";
 
 interface NavbarProps {
   title?: string;
@@ -15,6 +16,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
+  const { definition, isRestaurant } = useBusiness();
   const colorScheme = useColorScheme();
   const pathname = usePathname();
   const router = useRouter();
@@ -25,6 +27,7 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
   const isReports = pathname.includes("reports");
   const isInventory = pathname.includes("inventory");
   const isSettings = pathname.includes("settings");
+  const isOperations = pathname.includes("operations");
   const isDark = colorScheme === "dark";
   const backgroundColor = isDark
     ? Colors.dark.background
@@ -35,15 +38,15 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
   const [alertCount, setAlertCount] = useState(0);
 
   const loadAlertCount = useCallback(async () => {
-    setAlertCount(await getUnreadAlertsCount());
-  }, []);
+    if (isRestaurant) setAlertCount(await getUnreadAlertsCount());
+  }, [isRestaurant]);
 
   useFocusEffect(
     useCallback(() => {
       let mounted = true;
 
       async function loadFocusedAlertCount() {
-        const count = await getUnreadAlertsCount();
+        const count = isRestaurant ? await getUnreadAlertsCount() : 0;
         if (mounted) {
           setAlertCount(count);
         }
@@ -54,7 +57,7 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
       return () => {
         mounted = false;
       };
-    }, [])
+    }, [isRestaurant])
   );
 
   useEffect(() => {
@@ -78,19 +81,20 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
         </TouchableOpacity>
       )}
 
-      {(isHome || isDashboard || isMenu || isSales || isReports || isInventory) && (
+      {(isHome || isDashboard || isMenu || isSales || isReports || isInventory || isOperations) && (
         <Text
           className="text-lg font-bold flex-1 text-center"
           style={{ color: textColor }}
         >
           {isMenu
-            ? "Menu"
+            ? definition?.catalog
             : isSales
               ? "Ventas"
               : isReports
                 ? "Reportes"
                 : isInventory
-                  ? "Inventario"
+                  ? definition?.inventory
+                  : isOperations ? definition?.operations
               : username
                 ? `Bienvenido(a), ${username}`
                 : "Inicio"}
@@ -123,7 +127,7 @@ export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
           </Pressable>
         </View>
       )}
-      {!isSettings ? (
+      {!isSettings && isRestaurant ? (
         <Pressable
           onPress={() => router.push("/view/dashboard/alerts" as any)}
           className="relative p-2"

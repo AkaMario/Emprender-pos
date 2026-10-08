@@ -9,6 +9,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "test": "node --test --experimental-test-isolation=none scripts/tests/*.test.cjs",
+    "typecheck": "tsc --noEmit",
+    "db:reference": "node scripts/generate-business-schema.cjs",
     "db:create": "sqlite3 database/pos.db < database/schema.sql"
   },
   "dependencies": {

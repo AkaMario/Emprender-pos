@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { Text, TouchableOpacity, View, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useBusiness } from "@/context/business";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface SidebarItem {
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { profile, definition } = useBusiness();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -25,9 +27,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const sidebarItems: SidebarItem[] = [
     { label: "Inicio", route: "/(tabs)/", icon: "home" },
-    { label: "Menu", route: "/(tabs)/menu", icon: "restaurant-menu" },
+    { label: definition?.catalog ?? "Catálogo", route: "/(tabs)/menu", icon: definition?.icon ?? "storefront" },
     { label: "Ventas", route: "/(tabs)/sales", icon: "point-of-sale" },
-    { label: "Inventario", route: "/(tabs)/inventory", icon: "inventory-2" },
+    ...(profile?.model === "services" ? [] : [{ label: definition?.inventory ?? "Inventario", route: "/(tabs)/inventory", icon: "inventory-2" }]),
+    { label: definition?.operations ?? "Operaciones", route: "/(tabs)/operations", icon: profile?.model === "rental" || profile?.model === "services" ? "event" : "assignment" },
     { label: "Reportes", route: "/(tabs)/reports", icon: "bar-chart" },
     { label: "Configuracion", route: "/(tabs)/settings", icon: "settings" },
   ];
@@ -58,10 +61,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <View className="flex-1 pt-4 gap-4">
           <View className="px-4 pb-4 border-b border-gray-300 dark:border-gray-600 flex-row items-center justify-between">
             <Text className="text-xl font-bold" style={{ color: textColor }}>
-              Menu
+              {profile?.name ?? "Mi emprendimiento"}
             </Text>
             <Pressable onPress={onClose} className="p-2">
-              <MaterialIcons name="close" size={24} color="black" />
+              <MaterialIcons name="close" size={24} color={textColor} />
             </Pressable>
           </View>
 

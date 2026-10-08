@@ -1,7 +1,8 @@
 import { Image } from "expo-image";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import * as Crypto from "expo-crypto";
 import {
   Alert,
   Pressable,
@@ -43,6 +44,7 @@ function formatCurrencyInput(value: string) {
 }
 
 export function PosScreen() {
+  const operationKey = useRef(Crypto.randomUUID());
   const router = useRouter();
   const [saleNumber, setSaleNumber] = useState("V-0001");
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -93,6 +95,7 @@ export function PosScreen() {
     if (dish.stockStatus === "Sin Stock") {
       return;
     }
+    operationKey.current = Crypto.randomUUID();
 
     setCart((current) => {
       const existing = current.find((item) => item.dish.id === dish.id);
@@ -110,6 +113,7 @@ export function PosScreen() {
   }
 
   function updateQuantity(dishId: number, delta: number) {
+    operationKey.current = Crypto.randomUUID();
     setCart((current) =>
       current
         .map((item) =>
@@ -122,10 +126,12 @@ export function PosScreen() {
   }
 
   function removeItem(dishId: number) {
+    operationKey.current = Crypto.randomUUID();
     setCart((current) => current.filter((item) => item.dish.id !== dishId));
   }
 
   async function confirmSale() {
+    if (saving) return;
     if (orderType === "Mesa" && !tableNumber.trim()) {
       Alert.alert("Mesa requerida", "Ingresa el numero de mesa.");
       return;
@@ -142,6 +148,7 @@ export function PosScreen() {
     setSaving(true);
     try {
       const saleId = await createCompletedSale({
+        operationKey: operationKey.current,
         orderType,
         tableNumber: tableNumber.trim(),
         customerId,
@@ -175,6 +182,7 @@ export function PosScreen() {
         ],
       );
       setCart([]);
+      operationKey.current = Crypto.randomUUID();
       setAmountReceived("");
       setTransferReference("");
       await loadData();

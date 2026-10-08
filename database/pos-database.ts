@@ -1,4 +1,13 @@
-import { getDatabase } from "./auth-database";
+import { getDatabase as getBaseDatabase } from "./auth-database";
+import { withPosTransaction, type DatabaseExecutor } from "./unit-of-work";
+
+async function requireRestaurant(db: DatabaseExecutor) {
+  const business = await db.getFirstAsync<{ model: string }>("SELECT model FROM business_profile WHERE id=1");
+  if (business?.model !== "restaurant") throw new Error("Esta operación solo está disponible para el emprendimiento de restaurante.");
+}
+async function getDatabase() {
+  const db = await getBaseDatabase(); await requireRestaurant(db); return db;
+}
 
 export type DishCategory = string;
 export type ProductCategory = {
@@ -103,13 +112,13 @@ export type SaleDetail = {
   status: SaleStatus;
   cancellationReason: string | null;
   createdAt: number;
-  items: Array<{
+  items: {
     id: number;
     dishName: string;
     unitPrice: number;
     quantity: number;
     total: number;
-  }>;
+  }[];
 };
 
 export type ReportPeriod = "Dia" | "Semana" | "Mes" | "Personalizado";
@@ -157,7 +166,7 @@ export type UpsertDishInput = {
   category: DishCategory;
   size: string;
   imageUri?: string | null;
-  recipeItems?: Array<{ inventoryItemId: number; quantity: number }>;
+  recipeItems?: { inventoryItemId: number; quantity: number }[];
   isActive?: boolean;
 };
 
@@ -167,6 +176,7 @@ export type CartItemInput = {
 };
 
 export type CreateSaleInput = {
+  operationKey?: string;
   orderType: OrderType;
   tableNumber?: string;
   customerId?: number | null;
@@ -267,11 +277,6 @@ type SaleDetailItemRow = {
   unit_price: number;
   quantity: number;
   total: number;
-};
-
-type SaleItemJoinRow = {
-  dish_id: number;
-  quantity: number;
 };
 
 type CategorySalesRow = {
@@ -726,7 +731,7 @@ export async function upsertDish(input: UpsertDishInput) {
 
 async function replaceDishRecipe(
   dishId: number,
-  recipeItems: Array<{ inventoryItemId: number; quantity: number }>
+  recipeItems: { inventoryItemId: number; quantity: number }[]
 ) {
   const db = await getDatabase();
   await db.runAsync("DELETE FROM dish_recipes WHERE dish_id = ?", [dishId]);
@@ -898,7 +903,7 @@ export async function getInventoryMovements(options: {
   endDate?: string;
 }) {
   const db = await getDatabase();
-  const params: Array<string | number> = [options.inventoryItemId];
+  const params: (string | number)[] = [options.inventoryItemId];
   const filters = ["inventory_item_id = ?"];
 
   if (options.type && options.type !== "Todos") {
@@ -951,149 +956,107 @@ export async function getNextSaleNumber() {
 }
 
 export async function createCompletedSale(input: CreateSaleInput) {
-  const db = await getDatabase();
-
-  if (input.items.length === 0) {
-    throw new Error("Agrega al menos un plato al carrito.");
-  }
-
-  const now = Date.now();
-  let createdSaleId = 0;
-
-  await db.withTransactionAsync(async () => {
-    const saleNumber = await getNextSaleNumber();
-    const dishes = await getDishes();
-    const items = input.items.map((item) => {
-      const dish = dishes.find((candidate) => candidate.id === item.dishId);
-
-      if (!dish || dish.stockStatus === "Sin Stock") {
-        throw new Error("Uno de los platos no esta disponible.");
+  return withPosTransaction(async (tx) => {
+    await requireRestaurant(tx);
+    if (input.operationKey) {
+      const retry = await tx.getFirstAsync<{ sale_id: number }>("SELECT sale_id FROM restaurant_checkout_keys WHERE operation_key=?", [input.operationKey]);
+      if (retry) return retry.sale_id;
+    }
+    if (!input.items.length) throw new Error("Agrega al menos un plato al carrito.");
+    if (!["Mesa", "Domicilio", "Para Llevar"].includes(input.orderType)) throw new Error("Tipo de orden inválido.");
+    if (input.orderType === "Mesa" && !input.tableNumber?.trim()) throw new Error("Ingresa el número de mesa.");
+    if (!["Efectivo", "Transferencia"].includes(input.paymentMethod)) throw new Error("Medio de pago inválido.");
+    if (!Number.isSafeInteger(input.deliveryFee) || input.deliveryFee < 0) throw new Error("Costo de entrega inválido.");
+    const now = Date.now();
+    const dishes = await tx.getAllAsync<DishRow>("SELECT * FROM dishes WHERE is_active=1");
+    const demand = new Map<number, number>();
+    const items = [];
+    let subtotal = 0;
+    for (const item of input.items) {
+      if (!Number.isSafeInteger(item.quantity) || item.quantity <= 0) throw new Error("La cantidad de platos debe ser un entero positivo.");
+      const dish = dishes.find((row) => row.id === item.dishId);
+      if (!dish) throw new Error("Uno de los platos no está disponible.");
+      const amount = dish.price * item.quantity;
+      if (!Number.isSafeInteger(amount) || amount < 0) throw new Error("Precio o total inválido.");
+      subtotal += amount;
+      const components = await tx.getAllAsync<{ inventory_item_id: number; quantity: number }>("SELECT inventory_item_id,quantity FROM dish_recipes WHERE dish_id=?", [dish.id]);
+      for (const component of components) {
+        const required = (demand.get(component.inventory_item_id) ?? 0) + component.quantity * item.quantity;
+        if (!Number.isFinite(required) || required <= 0) throw new Error("La receta contiene una cantidad inválida.");
+        demand.set(component.inventory_item_id, required);
       }
-
-      return { ...item, dish };
-    });
-    const subtotal = items.reduce((total, item) => total + item.dish.price * item.quantity, 0);
+      items.push({ ...item, dish, amount });
+    }
     const total = subtotal + input.deliveryFee;
-    const changeAmount = input.paymentMethod === "Efectivo" ? (input.amountReceived ?? 0) - total : 0;
-
-    if (input.paymentMethod === "Efectivo" && changeAmount < 0) {
-      throw new Error("El monto recibido no cubre el total.");
+    if (!Number.isSafeInteger(total)) throw new Error("El total supera el límite permitido.");
+    const change = input.paymentMethod === "Efectivo" ? (input.amountReceived ?? 0) - total : 0;
+    if (input.paymentMethod === "Efectivo" && (!Number.isSafeInteger(input.amountReceived) || change < 0)) throw new Error("El monto recibido no cubre el total.");
+    for (const [itemId, required] of demand) {
+      const stock = await tx.getFirstAsync<{ current_quantity: number; name: string }>("SELECT current_quantity,name FROM inventory_items WHERE id=?", [itemId]);
+      if (!stock || stock.current_quantity < required) throw new Error(`${stock?.name ?? "Insumo"}: stock insuficiente para todo el carrito.`);
     }
-
     let customerId = input.customerId ?? null;
-    if (input.orderType === "Domicilio" && !customerId && input.customerName?.trim()) {
-      customerId = await createCustomer(input.customerName);
+    if (input.orderType === "Domicilio" && !customerId) {
+      if (!input.customerName?.trim()) throw new Error("Ingresa el cliente del domicilio.");
+      const customer = await tx.runAsync("INSERT INTO customers(name,created_at,updated_at) VALUES(?,?,?)", [input.customerName.trim(), now, now]);
+      customerId = customer.lastInsertRowId;
     }
-
-    const result = await db.runAsync(
-      `INSERT INTO sales (
-        sale_number, order_type, table_number, customer_id, customer_name, subtotal, delivery_fee,
-        total, payment_method, amount_received, change_amount, transfer_reference, status, created_at, completed_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Completada', ?, ?)`,
-      [
-        saleNumber,
-        input.orderType,
-        input.tableNumber ?? null,
-        customerId,
-        input.customerName?.trim() || null,
-        subtotal,
-        input.deliveryFee,
-        total,
-        input.paymentMethod,
-        input.amountReceived ?? null,
-        changeAmount,
-        input.transferReference?.trim() || null,
-        now,
-        now,
-      ]
-    );
-    createdSaleId = result.lastInsertRowId;
-
+    const next = await tx.getFirstAsync<{ next_id: number }>("SELECT COALESCE(MAX(id),0)+1 AS next_id FROM sales");
+    const number = `V-${String(next?.next_id ?? 1).padStart(4, "0")}`;
+    const result = await tx.runAsync(`INSERT INTO sales(sale_number,order_type,table_number,customer_id,customer_name,subtotal,delivery_fee,total,payment_method,amount_received,change_amount,transfer_reference,status,created_at,completed_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?, 'Completada',?,?)`,
+      [number, input.orderType, input.tableNumber?.trim() ?? null, customerId, input.customerName?.trim() || null, subtotal, input.deliveryFee, total, input.paymentMethod, input.amountReceived ?? null, change, input.transferReference?.trim() || null, now, now]);
+    const saleId = result.lastInsertRowId;
+    if (input.operationKey) await tx.runAsync("INSERT INTO restaurant_checkout_keys(operation_key,sale_id) VALUES(?,?)", [input.operationKey, saleId]);
     for (const item of items) {
-      await db.runAsync(
-        `INSERT INTO sale_items (sale_id, dish_id, dish_name, unit_price, quantity, total)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [createdSaleId, item.dish.id, item.dish.name, item.dish.price, item.quantity, item.dish.price * item.quantity]
-      );
-      await applyInventoryForDish(item.dish.id, item.quantity, createdSaleId, "sale");
+      await tx.runAsync("INSERT INTO sale_items(sale_id,dish_id,dish_name,unit_price,quantity,total) VALUES(?,?,?,?,?,?)", [saleId, item.dish.id, item.dish.name, item.dish.price, item.quantity, item.amount]);
+      await tx.runAsync("INSERT INTO restaurant_preparation_tasks(sale_id,dish_name_snapshot,quantity,created_at,updated_at) VALUES(?,?,?,?,?)", [saleId, item.dish.name, item.quantity, now, now]);
     }
-
-    await refreshStockAlerts();
+    for (const [itemId, required] of demand) {
+      const changed = await tx.runAsync("UPDATE inventory_items SET current_quantity=current_quantity-?,updated_at=? WHERE id=? AND current_quantity>=?", [required, now, itemId, required]);
+      if (changed.changes !== 1) throw new Error("El inventario cambió mientras se confirmaba la venta.");
+      await tx.runAsync("INSERT INTO inventory_movements(inventory_item_id,sale_id,type,quantity,reason,created_at) VALUES(?,?,'sale',?,'Venta completada',?)", [itemId, saleId, required, now]);
+    }
+    await refreshStockAlerts(tx);
+    return saleId;
   });
-
-  return createdSaleId;
-}
-
-async function applyInventoryForDish(
-  dishId: number,
-  quantity: number,
-  saleId: number,
-  movementType: "sale" | "cancel"
-) {
-  const db = await getDatabase();
-  const recipes = await db.getAllAsync<{
-    inventory_item_id: number;
-    quantity: number;
-  }>("SELECT inventory_item_id, quantity FROM dish_recipes WHERE dish_id = ?", [dishId]);
-  const multiplier = movementType === "sale" ? -1 : 1;
-
-  for (const recipe of recipes) {
-    const movementQuantity = recipe.quantity * quantity * multiplier;
-    await db.runAsync(
-      "UPDATE inventory_items SET current_quantity = current_quantity + ?, updated_at = ? WHERE id = ?",
-      [movementQuantity, Date.now(), recipe.inventory_item_id]
-    );
-    await db.runAsync(
-      `INSERT INTO inventory_movements (inventory_item_id, sale_id, type, quantity, reason, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        recipe.inventory_item_id,
-        saleId,
-        movementType,
-        Math.abs(movementQuantity),
-        movementType === "sale" ? "Venta completada" : "Venta cancelada",
-        Date.now(),
-      ]
-    );
-  }
 }
 
 export async function cancelSale(id: number, reason: string) {
-  if (!reason.trim()) {
-    throw new Error("El motivo de cancelacion es obligatorio.");
-  }
-
-  const db = await getDatabase();
-  const sale = await db.getFirstAsync<{ status: SaleStatus }>(
-    "SELECT status FROM sales WHERE id = ? LIMIT 1",
-    [id]
-  );
-
-  if (!sale || sale.status === "Cancelada") {
-    throw new Error("La venta no esta disponible para cancelar.");
-  }
-
-  const items = await db.getAllAsync<SaleItemJoinRow>(
-    "SELECT dish_id, quantity FROM sale_items WHERE sale_id = ?",
-    [id]
-  );
-
-  await db.withTransactionAsync(async () => {
-    for (const item of items) {
-      await applyInventoryForDish(item.dish_id, item.quantity, id, "cancel");
+  if (!reason.trim()) throw new Error("El motivo de cancelación es obligatorio.");
+  await withPosTransaction(async (tx) => {
+    await requireRestaurant(tx);
+    const sale = await tx.getFirstAsync<{ status: SaleStatus }>("SELECT status FROM sales WHERE id=?", [id]);
+    if (!sale || sale.status === "Cancelada") throw new Error("La venta no está disponible para cancelar.");
+    const started = await tx.getFirstAsync<{ id: number }>("SELECT id FROM restaurant_preparation_tasks WHERE sale_id=? AND state IN ('preparing','ready','served') LIMIT 1", [id]);
+    // Reverse the historical consumption, never the current recipe.
+    // Once preparation starts, cancelling the charge cannot restore consumed inputs.
+    if (!started) {
+      const consumed = await tx.getAllAsync<{ inventory_item_id: number; quantity: number }>("SELECT inventory_item_id,SUM(quantity) AS quantity FROM inventory_movements WHERE sale_id=? AND type='sale' GROUP BY inventory_item_id", [id]);
+      for (const item of consumed) {
+        await tx.runAsync("UPDATE inventory_items SET current_quantity=current_quantity+?,updated_at=? WHERE id=?", [item.quantity, Date.now(), item.inventory_item_id]);
+        await tx.runAsync("INSERT INTO inventory_movements(inventory_item_id,sale_id,type,quantity,reason,created_at) VALUES(?,?,'cancel',?,?,?)", [item.inventory_item_id, id, item.quantity, reason.trim(), Date.now()]);
+      }
     }
+    await tx.runAsync("UPDATE restaurant_preparation_tasks SET state='cancelled',updated_at=? WHERE sale_id=?", [Date.now(), id]);
+    await tx.runAsync("UPDATE sales SET status='Cancelada',cancellation_reason=?,cancelled_at=? WHERE id=?", [reason.trim(), Date.now(), id]);
+    await tx.runAsync("INSERT INTO alerts(type,entity_name,message,source_key,created_at) VALUES('Orden cancelada',?,?,?,?)", [`Venta #${id}`, started ? `${reason.trim()} · Insumos consumidos sin reintegro` : reason.trim(), `sale_cancel:${id}`, Date.now()]);
+    await refreshStockAlerts(tx);
+  });
+}
 
-    await db.runAsync(
-      `UPDATE sales
-       SET status = 'Cancelada', cancellation_reason = ?, cancelled_at = ?
-       WHERE id = ?`,
-      [reason.trim(), Date.now(), id]
-    );
-    await db.runAsync(
-      `INSERT INTO alerts (type, entity_name, message, source_key, created_at)
-       VALUES ('Orden cancelada', ?, ?, ?, ?)`,
-      [`Venta #${id}`, reason.trim(), `sale_cancel:${id}`, Date.now()]
-    );
+export type PreparationTask = { id: number; sale_id: number; dish_name_snapshot: string; quantity: number; state: "queued" | "preparing" | "ready" | "served" | "cancelled"; table_number: string | null; order_type: string; created_at: number };
+export async function getPreparationTasks() {
+  const db = await getDatabase();
+  return db.getAllAsync<PreparationTask>("SELECT p.*,s.table_number,s.order_type FROM restaurant_preparation_tasks p JOIN sales s ON s.id=p.sale_id WHERE p.state NOT IN ('served','cancelled') ORDER BY p.created_at");
+}
+export async function advancePreparationTask(id: number, expectedState?: PreparationTask["state"]) {
+  await withPosTransaction(async (tx) => {
+    await requireRestaurant(tx);
+    const row = await tx.getFirstAsync<PreparationTask>("SELECT * FROM restaurant_preparation_tasks WHERE id=?", [id]);
+    if (!row || !["queued","preparing","ready"].includes(row.state)) throw new Error("Esta preparación ya está cerrada.");
+    if (expectedState && expectedState !== row.state) throw new Error("La comanda cambió. Actualiza la pantalla.");
+    const next = row.state === "queued" ? "preparing" : row.state === "preparing" ? "ready" : "served";
+    await tx.runAsync("UPDATE restaurant_preparation_tasks SET state=?,updated_at=? WHERE id=?", [next, Date.now(), id]);
   });
 }
 
@@ -1186,8 +1149,8 @@ export async function getDashboardKpis(date = new Date()) {
   };
 }
 
-export async function refreshStockAlerts() {
-  const db = await getDatabase();
+export async function refreshStockAlerts(executor?: DatabaseExecutor) {
+  const db = executor ?? await getDatabase();
   const items = await db.getAllAsync<{
     id: number;
     name: string;
@@ -1446,7 +1409,7 @@ export async function getSalesExportRowsForRange(startTimestamp: number, endTime
 }
 
 export async function getQrImageUri() {
-  const db = await getDatabase();
+  const db = await getBaseDatabase();
   const row = await db.getFirstAsync<{ value: string }>(
     "SELECT value FROM settings WHERE key = 'transfer_qr_uri' LIMIT 1"
   );
@@ -1454,7 +1417,7 @@ export async function getQrImageUri() {
 }
 
 export async function saveQrImageUri(uri: string | null) {
-  const db = await getDatabase();
+  const db = await getBaseDatabase();
   if (uri === null) {
     await db.runAsync("DELETE FROM settings WHERE key = 'transfer_qr_uri'");
     return;
