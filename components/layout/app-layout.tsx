@@ -1,5 +1,4 @@
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useDesignColors } from "@/constants/design";
 import React, { useState } from "react";
 import { View } from "react-native";
 import { Navbar } from "./navbar";
@@ -13,11 +12,8 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, title = "App" }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const backgroundColor = isDark
-    ? Colors.dark.background
-    : Colors.light.background;
+  const c = useDesignColors();
+  const backgroundColor = c.background;
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor }}>

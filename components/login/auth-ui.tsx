@@ -1,117 +1,31 @@
-import React from "react";
-import {
-  Image,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-
-const Logo = require("@/assets/images/Logo.png");
-
-export const BRAND_RED = "#c2411f";
-export const BRAND_GREEN = "#2f7d3b";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React from 'react';
+import { Text, View, type TextInputProps } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, ErrorText } from '@/components/business/ui';
+import { AppInput } from '@/components/ui/form-input';
+import { ScreenScroll } from '@/components/ui/screen-scroll';
+import { metrics, useDesignColors } from '@/constants/design';
 
 export function BrandLogo() {
-  return (
-    <View className="items-center">
-      <Image source={Logo} className="" resizeMode="contain" />
-    </View>
-  );
+  const c = useDesignColors();
+  return <View accessibilityLabel="Emprender" style={{ alignItems: 'center', gap: 12 }}>
+    <View style={{ backgroundColor: c.primaryContainer, borderRadius: 20, width: 72, height: 72, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="storefront-outline" size={36} color={c.primary} /></View>
+    <Text style={{ fontSize: 28, fontWeight: '700', color: c.text }}>Emprender</Text>
+  </View>;
 }
-
-export function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <Text className="mb-2 text-[10px] font-bold uppercase text-slate-700">
-      {children}
-    </Text>
-  );
-}
-
-export function FormInput(props: React.ComponentProps<typeof TextInput>) {
-  return (
-    <TextInput
-      {...props}
-      className="mb-4 rounded-md border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-900"
-      placeholderTextColor="#9ca3af"
-    />
-  );
-}
-
-export function PrimaryButton({
-  children,
-  disabled,
-  onPress,
-}: {
-  children: React.ReactNode;
-  disabled?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      className={`rounded-lg px-4 py-3 ${disabled ? "bg-orange-800" : "bg-orange-700"}`}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [{ transform: [{ scale: pressed ? 0.98 : 1 }] }]}
-    >
-      <Text className="text-center text-xs font-black uppercase text-white">
-        {children}
-      </Text>
-    </Pressable>
-  );
-}
-
+export function FieldLabel({ children }: { children: React.ReactNode }) { const c = useDesignColors(); return <Text style={{ marginBottom: 8, fontSize: 14, fontWeight: '600', color: c.text }}>{children}</Text>; }
+export function FormInput(props: TextInputProps) { return <View style={{ marginBottom: 16 }}><AppInput autoCapitalize="none" autoCorrect={false} {...props} style={props.style} /></View>; }
+export function PrimaryButton({ children, disabled, onPress }: { children: React.ReactNode; disabled?: boolean; onPress: () => void }) { return <Button title={String(children)} disabled={disabled} onPress={onPress} />; }
 export function AuthShell({ children }: { children: React.ReactNode }) {
-  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
-
-  React.useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const showSubscription = Keyboard.addListener(showEvent, () => {
-      setKeyboardVisible(true);
-    });
-    const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setKeyboardVisible(false);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
-
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-white"
-      keyboardVerticalOffset={Platform.OS === "ios" ? 16 : 0}
-    >
-      <ScrollView
-        contentContainerClassName="flex-grow justify-center px-10 py-10"
-        contentContainerStyle={{ paddingBottom: keyboardVisible ? 360 : 40 }}
-        keyboardDismissMode="interactive"
-        keyboardShouldPersistTaps="always"
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="mb-10">
-          <BrandLogo />
-        </View>
-        {children}
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
+  const c = useDesignColors();
+  const items = React.Children.toArray(children);
+  const fields = items.map((child, index) => {
+    if (!React.isValidElement(child) || child.type !== FormInput) return child;
+    const previous = items.slice(0, index).reverse().find((item) => React.isValidElement(item) && item.type === FieldLabel);
+    const label = React.isValidElement(previous) ? String((previous.props as { children: React.ReactNode }).children) : undefined;
+    return React.cloneElement(child as React.ReactElement<TextInputProps>, { accessibilityLabel: label });
+  });
+  return <SafeAreaView style={{ flex: 1, backgroundColor: c.surface }}><ScreenScroll contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24, maxWidth: metrics.form, paddingBottom: 32 }}><View style={{ marginBottom: 32 }}><BrandLogo /></View>{fields}</ScreenScroll></SafeAreaView>;
 }
-
-export function ErrorMessage({ message }: { message: string }) {
-  if (!message) {
-    return null;
-  }
-
-  return (
-    <Text className="mb-4 text-xs font-semibold text-rose-600">{message}</Text>
-  );
-}
+export function ErrorMessage({ message }: { message: string }) { return message ? <View style={{ marginBottom: 16 }}><ErrorText message={message} /></View> : null; }

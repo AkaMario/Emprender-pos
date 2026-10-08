@@ -1,3 +1,5 @@
+import { useFormProtection } from "@/hooks/use-form-protection";
+import { AppAlert as Alert } from "@/components/ui/alerts";
 import { useAuth } from "@/context/auth";
 import {
   getSecurityQuestionByUsername,
@@ -10,7 +12,6 @@ import { SecuritySetupView } from "@/app/view/login/security-setup";
 import { PinAuthView } from "@/components/settings/pin-auth-view";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Alert } from "react-native";
 
 type ChangePasswordStep = "pin" | "security" | "password";
 
@@ -25,6 +26,7 @@ export default function ChangePasswordView() {
   const [verifyPassword, setVerifyPassword] = React.useState("");
   const [error, setError] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  const { dialog, markSaved } = useFormProtection([securityAnswer, newPassword, verifyPassword], submitting);
 
   React.useEffect(() => {
     let mounted = true;
@@ -67,6 +69,7 @@ export default function ChangePasswordView() {
   );
 
   async function handleValidateSecurityAnswer() {
+    if (submitting) return;
     if (!username) {
       return;
     }
@@ -96,6 +99,7 @@ export default function ChangePasswordView() {
   }
 
   async function handleSavePassword() {
+    if (submitting) return;
     if (!username) {
       return;
     }
@@ -115,8 +119,9 @@ export default function ChangePasswordView() {
 
     try {
       await updatePasswordWithRecovery(username, authenticatedPin, securityAnswer, newPassword);
+      markSaved();
       Alert.alert("Listo", "Contraseña actualizada.");
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace("/");
     } catch (currentError) {
       setError(currentError instanceof Error ? currentError.message : "No se pudo cambiar la contraseña.");
     } finally {
@@ -125,19 +130,16 @@ export default function ChangePasswordView() {
   }
 
   if (step === "pin") {
-    return (
-      <PinAuthView
+    return (<>{dialog}<PinAuthView
         title="Ingresa tu PIN"
         description="Valida tu PIN para cambiar la contraseña."
-        onBack={() => router.back()}
+        onBack={() => router.canGoBack() ? router.back() : router.replace("/")}
         onValidate={handleValidatePin}
-      />
-    );
+      /></>);
   }
 
   if (step === "security") {
-    return (
-      <SecuritySetupView
+    return (<>{dialog}<SecuritySetupView
         buttonLabel="Validar respuesta"
         error={error}
         readOnlyQuestion
@@ -153,12 +155,11 @@ export default function ChangePasswordView() {
         onChangeSecurityAnswer={setSecurityAnswer}
         onChangeSecurityQuestion={() => null}
         onSubmit={handleValidateSecurityAnswer}
-      />
-    );
+      /></>);
   }
 
-  return (
-    <PasswordSetupView
+  return (<>{dialog}<PasswordSetupView
+          submitting={submitting}
       buttonLabel={submitting ? "Guardando..." : "Guardar contraseña"}
       error={error}
       password={newPassword}
@@ -171,6 +172,5 @@ export default function ChangePasswordView() {
       onChangePassword={setNewPassword}
       onChangeVerifyPassword={setVerifyPassword}
       onContinue={handleSavePassword}
-    />
-  );
+    /></>);
 }

@@ -1,8 +1,12 @@
+import { useDesignColors } from "@/constants/design";
+import { AppAlert as Alert } from "@/components/ui/alerts";
+import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
+import { ScreenScroll } from "@/components/ui/screen-scroll";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import {
   formatCurrency,
   formatSaleTime,
@@ -17,29 +21,26 @@ const quickActions = [
     label: "Nueva Venta",
     route: "/(tabs)/sales",
     icon: "point-of-sale",
-    color: "#ef4444",
   },
   {
     label: "Entrada de Insumos",
     route: "/view/dashboard/supply-entry",
     icon: "inventory",
-    color: "#f97316",
   },
   {
     label: "Salida de Stock",
     route: "/view/dashboard/stock-out",
     icon: "remove-shopping-cart",
-    color: "#0f766e",
   },
   {
     label: "Nuevo Plato",
     route: "/view/menu/create",
     icon: "restaurant-menu",
-    color: "#7c3aed",
   },
 ];
 
 export function HomeDashboard() {
+  const c = useDesignColors();
   const router = useRouter();
   const [kpis, setKpis] = useState<DashboardKpis>({
     todaySales: 0,
@@ -66,7 +67,7 @@ export function HomeDashboard() {
         setRecentSales(nextSales);
       }
 
-      loadDashboard();
+      void loadDashboard().catch((cause) => { if (mounted) Alert.alert("No se pudo cargar el resumen", cause instanceof Error ? cause.message : "Intenta nuevamente."); });
 
       return () => {
         mounted = false;
@@ -80,30 +81,30 @@ export function HomeDashboard() {
       value: formatCurrency(kpis.todaySales),
       comparison: `${kpis.salesComparison >= 0 ? "+" : ""}${kpis.salesComparison}% que ayer`,
       icon: "attach-money",
-      color: "#16a34a",
-      background: "#dcfce7",
+      color: c.success,
+      background: c.successContainer,
     },
     {
       label: "Numero de Ordenes",
       value: String(kpis.todayOrders),
       comparison: `${kpis.ordersComparison >= 0 ? "+" : ""}${kpis.ordersComparison}% que ayer`,
       icon: "receipt-long",
-      color: "#2563eb",
-      background: "#dbeafe",
+      color: c.primary,
+      background: c.primaryContainer,
     },
     {
       label: "Ticket Promedio",
       value: formatCurrency(kpis.averageTicket),
       comparison: `${kpis.averageComparison >= 0 ? "+" : ""}${kpis.averageComparison}% que ayer`,
       icon: "trending-up",
-      color: "#9333ea",
-      background: "#f3e8ff",
+      color: c.chart2,
+      background: c.surfaceElevated,
     },
   ];
 
   return (
-    <ScrollView
-      className="flex-1 bg-slate-50 dark:bg-black"
+    <ScreenScroll
+      className="flex-1 bg-background "
       contentContainerClassName="px-4 py-5 pb-10"
       showsVerticalScrollIndicator={false}
     >
@@ -111,7 +112,7 @@ export function HomeDashboard() {
 
       <View className="gap-3">
         <View className="flex-row items-center justify-between">
-          <Text className="text-xl font-black text-slate-950 dark:text-white">
+          <Text className="text-xl font-black text-text ">
             Accesos rapidos
           </Text>
         </View>
@@ -121,19 +122,19 @@ export function HomeDashboard() {
             <Pressable
               key={action.label}
               onPress={() => router.push(action.route as any)}
-              className="min-h-28 flex-1 basis-[45%] rounded-2xl bg-white p-4 shadow-sm active:opacity-80 dark:bg-slate-900"
+              className="min-h-28 flex-1 basis-[45%] rounded-2xl bg-surface p-4 shadow-sm active:bg-surfaceElevated "
             >
               <View
                 className="mb-3 h-11 w-11 items-center justify-center rounded-2xl"
-                style={{ backgroundColor: `${action.color}20` }}
+                style={{ backgroundColor: c.primaryContainer }}
               >
                 <MaterialIcons
                   name={action.icon as any}
                   size={24}
-                  color={action.color}
+                  color={c.primary}
                 />
               </View>
-              <Text className="text-base font-black text-slate-950 dark:text-white">
+              <Text className="text-base font-black text-text ">
                 {action.label}
               </Text>
             </Pressable>
@@ -147,17 +148,17 @@ export function HomeDashboard() {
           {dashboardKpis.map((kpi) => (
             <View
               key={kpi.label}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+              className="rounded-2xl border border-separator bg-surface p-4 shadow-sm "
             >
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1">
-                  <Text className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                  <Text className="text-sm font-semibold text-muted ">
                     {kpi.label}
                   </Text>
-                  <Text className="mt-2 text-3xl font-black text-slate-950 dark:text-white">
+                  <Text className="mt-2 text-3xl font-black text-text ">
                     {kpi.value}
                   </Text>
-                  <Text className="mt-2 text-sm font-bold text-emerald-600">
+                  <Text className={`mt-2 text-sm font-bold ${kpi.comparison.startsWith("-") ? "text-error" : "text-success"}`}>
                     {kpi.comparison}
                   </Text>
                 </View>
@@ -178,15 +179,15 @@ export function HomeDashboard() {
 
         <View className="gap-3">
           <View className="flex-row items-center justify-between">
-            <Text className="text-xl font-black text-slate-950 dark:text-white">
+            <Text className="text-xl font-black text-text ">
               Ultimas ventas
             </Text>
-            {/* <Text className="text-sm font-semibold text-slate-500">
+            {/* <Text className="text-sm font-semibold text-muted">
               Tiempo real
             </Text> */}
           </View>
 
-          <View className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900">
+          <View className="overflow-hidden rounded-3xl bg-surface ">
             {recentSales.map((sale, index) => (
               <Pressable
                 key={sale.id}
@@ -196,35 +197,35 @@ export function HomeDashboard() {
                     params: { id: String(sale.id) },
                   } as any)
                 }
-                className={`flex-row items-center gap-3 p-4 active:bg-slate-100 dark:active:bg-slate-800 ${
+                className={`flex-row items-center gap-3 p-4 active:bg-surfaceElevated ${
                   index < recentSales.length - 1
-                    ? "border-b border-slate-100 dark:border-slate-800"
+                    ? "border-b border-separator "
                     : ""
                 }`}
               >
-                <View className="h-3 w-3 rounded-full bg-emerald-500" />
+                <View className="h-3 w-3 rounded-full bg-success" />
                 <View className="flex-1">
-                  <Text className="text-base font-black text-slate-950 dark:text-white">
+                  <Text className="text-base font-black text-text ">
                     {sale.dishName}
                   </Text>
                   <View className="mt-1 flex-row items-center gap-2">
                     <MaterialCommunityIcons
                       name="check-circle"
                       size={14}
-                      color="#16a34a"
+                      color={c.success}
                     />
-                    <Text className="text-sm font-semibold text-slate-500">
+                    <Text className="text-sm font-semibold text-muted">
                       {sale.orderType} · {formatSaleTime(sale.createdAt)}
                     </Text>
                   </View>
                 </View>
-                <Text className="text-base font-black text-slate-950 dark:text-white">
+                <Text className="text-base font-black text-text ">
                   {formatCurrency(sale.total)}
                 </Text>
               </Pressable>
             ))}
             {recentSales.length === 0 ? (
-              <Text className="p-4 text-center text-sm font-semibold text-slate-500">
+              <Text className="p-4 text-center text-sm font-semibold text-muted">
                 Aun no hay ventas registradas.
               </Text>
             ) : null}
@@ -233,6 +234,6 @@ export function HomeDashboard() {
       </View>
 
       </View>
-    </ScrollView>
+    </ScreenScroll>
   );
 }

@@ -4,7 +4,7 @@ import {
   updatePasswordWithSecurityAnswer,
   verifySecurityAnswer,
 } from "@/database/auth-database";
-import { BRAND_RED } from "@/components/login/auth-ui";
+import { useDesignColors } from "@/constants/design";
 import { ExistingLoginView } from "@/app/view/login/existing-login";
 import { PasswordSetupView } from "@/app/view/login/password-setup";
 import { PinSetupView } from "@/app/view/login/pin-setup";
@@ -18,6 +18,7 @@ type SetupStep = "username" | "password" | "pin" | "security";
 type LoginMode = "login" | "resetSecurity" | "resetPassword";
 
 export default function LoginScreen() {
+  const c = useDesignColors();
   const { hasUser, isAuthenticated, isLoading, login, register } = useAuth();
   const router = useRouter();
   const [loginMode, setLoginMode] = useState<LoginMode>("login");
@@ -45,6 +46,7 @@ export default function LoginScreen() {
   }
 
   async function handleExistingLogin() {
+    if (submitting) return;
     setError("");
 
     if (!username.trim() || !password) {
@@ -79,6 +81,7 @@ export default function LoginScreen() {
   }
 
   async function handleResetSecurityAnswer() {
+    if (submitting) return;
     setError("");
 
     if (!username.trim() || !securityAnswer.trim()) {
@@ -107,6 +110,7 @@ export default function LoginScreen() {
   }
 
   async function handleResetPassword() {
+    if (submitting) return;
     setError("");
 
     if (!password || !verifyPassword) {
@@ -169,6 +173,7 @@ export default function LoginScreen() {
   }
 
   async function handleSetupSubmit() {
+    if (submitting) return;
     setError("");
 
     if (!securityAnswer.trim()) {
@@ -196,8 +201,8 @@ export default function LoginScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator color={BRAND_RED} />
+      <View className="flex-1 items-center justify-center bg-surface">
+        <ActivityIndicator color={c.primary} />
       </View>
     );
   }
@@ -227,6 +232,7 @@ export default function LoginScreen() {
     if (loginMode === "resetPassword") {
       return (
         <PasswordSetupView
+          submitting={submitting}
           buttonLabel="Cambiar contrasena"
           error={error}
           password={password}
@@ -286,6 +292,7 @@ export default function LoginScreen() {
   if (step === "password") {
     return (
       <PasswordSetupView
+          submitting={submitting}
         error={error}
         password={password}
         verifyPassword={verifyPassword}

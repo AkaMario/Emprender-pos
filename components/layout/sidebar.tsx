@@ -1,9 +1,10 @@
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { ActionPressable as Pressable } from '@/components/ui/action-pressable';
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useRouter } from "expo-router";
+import { useRouter, usePathname } from "expo-router";
 import React from "react";
-import { Text, TouchableOpacity, View, Pressable } from "react-native";
+import { Text, View, Modal, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDesignColors } from "@/constants/design";
 import { useBusiness } from "@/context/business";
 
 interface SidebarProps {
@@ -20,10 +21,10 @@ interface SidebarItem {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { profile, definition } = useBusiness();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const backgroundColor = isDark ? "#1a1a1a" : "#f5f5f5";
-  const textColor = isDark ? "#fff" : "#000";
+  const c = useDesignColors();
+  const pathname = usePathname();
+  const backgroundColor = c.surface;
+  const textColor = c.text;
 
   const sidebarItems: SidebarItem[] = [
     { label: "Inicio", route: "/(tabs)/", icon: "home" },
@@ -32,72 +33,33 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     ...(profile?.model === "services" ? [] : [{ label: definition?.inventory ?? "Inventario", route: "/(tabs)/inventory", icon: "inventory-2" }]),
     { label: definition?.operations ?? "Operaciones", route: "/(tabs)/operations", icon: profile?.model === "rental" || profile?.model === "services" ? "event" : "assignment" },
     { label: "Reportes", route: "/(tabs)/reports", icon: "bar-chart" },
-    { label: "Configuracion", route: "/(tabs)/settings", icon: "settings" },
+    { label: "Configuración", route: "/(tabs)/settings", icon: "settings" },
   ];
 
   const handleNavigate = (route: string) => {
-    router.push(route as any);
+    router.navigate(route as any);
     onClose?.();
   };
 
   return (
-    <>
-      {/* Overlay */}
-      {isOpen && (
-        <TouchableOpacity
-          className="absolute inset-0 bg-black/50 z-40"
-          activeOpacity={1}
-          onPress={onClose}
-        />
-      )}
-
-      {/* Sidebar */}
-      <SafeAreaView
-        className={`absolute top-0 left-0 bottom-0 w-64 z-50 transition-transform ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-        style={{ backgroundColor }}
-      >
-        <View className="flex-1 pt-4 gap-4">
-          <View className="px-4 pb-4 border-b border-gray-300 dark:border-gray-600 flex-row items-center justify-between">
-            <Text className="text-xl font-bold" style={{ color: textColor }}>
-              {profile?.name ?? "Mi emprendimiento"}
-            </Text>
-            <Pressable onPress={onClose} className="p-2">
-              <MaterialIcons name="close" size={24} color={textColor} />
-            </Pressable>
+    <Modal visible={isOpen} transparent animationType="none" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Cerrar menú" onPress={onClose} style={{ backgroundColor: c.scrim, opacity: 0.6, position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} />
+        <SafeAreaView accessibilityViewIsModal onAccessibilityEscape={onClose} style={{ width: '85%', maxWidth: 360, flex: 1, backgroundColor }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderColor: c.border }}>
+            <Text accessibilityRole="header" style={{ flex: 1, fontSize: 22, fontWeight: '700', color: textColor }}>{profile?.name ?? 'Mi emprendimiento'}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Cerrar menú" onPress={onClose} style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}><MaterialIcons name="close" size={24} color={textColor} /></Pressable>
           </View>
-
-          {sidebarItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => handleNavigate(item.route)}
-              className="flex-row items-center px-4 py-3"
-              style={{
-                backgroundColor: isOpen ? "transparent" : backgroundColor,
-              }}
-            >
-              <MaterialIcons
-                name={item.icon as any}
-                size={24}
-                color={textColor}
-              />
-              <Text
-                className="text-base font-medium ml-3"
-                style={{ color: textColor }}
-              >
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* <View className="border-t border-gray-300 dark:border-gray-600 p-4">
-          <Text className="text-xs" style={{ color: textColor, opacity: 0.6 }}>
-            v1.0.0
-          </Text>
-        </View> */}
-      </SafeAreaView>
-    </>
+          <ScrollView contentContainerStyle={{ padding: 12, gap: 8 }}>
+            {sidebarItems.map((item) => {
+              const selected = pathname === item.route.replace('/(tabs)', '').replace(/\/$/, '') || (item.label === 'Inicio' && pathname === '/');
+              return <Pressable key={item.route} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => handleNavigate(item.route)} style={{ flexDirection: 'row', alignItems: 'center', minHeight: 48, padding: 16, borderRadius: 12, backgroundColor: selected ? c.primaryContainer : c.surface }}>
+                <MaterialIcons name={item.icon as any} size={24} color={selected ? c.primary : textColor} /><Text style={{ flex: 1, fontSize: 16, fontWeight: '600', marginLeft: 12, color: textColor }}>{item.label}</Text>
+              </Pressable>;
+            })}
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+    </Modal>
   );
 }

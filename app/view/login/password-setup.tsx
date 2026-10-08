@@ -1,9 +1,11 @@
+import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import { AuthShell, ErrorMessage, FieldLabel, FormInput, PrimaryButton } from "@/components/login/auth-ui";
 import React from "react";
-import { Pressable, Text } from "react-native";
+import { Text } from "react-native";
 
 type PasswordSetupViewProps = {
   buttonLabel?: string;
+  submitting?: boolean;
   error: string;
   password: string;
   title?: string;
@@ -15,7 +17,8 @@ type PasswordSetupViewProps = {
 };
 
 export function PasswordSetupView({
-  buttonLabel = "Continue",
+  buttonLabel = "Continuar",
+  submitting = false,
   error,
   password,
   title,
@@ -27,20 +30,20 @@ export function PasswordSetupView({
 }: PasswordSetupViewProps) {
   return (
     <AuthShell>
-      <Pressable className="mb-6" onPress={onBack}>
-        <Text className="text-2xl text-slate-700">‹</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Regresar al paso anterior" style={{ minHeight: 48, minWidth: 48, justifyContent: "center" }} className="mb-6" onPress={onBack}>
+        <Text className="text-2xl text-text ">‹</Text>
       </Pressable>
 
-      {title ? <Text className="mb-5 text-xl font-black text-slate-900">{title}</Text> : null}
+      {title ? <Text className="mb-5 text-xl font-black text-text ">{title}</Text> : null}
 
-      <FieldLabel>New password</FieldLabel>
-      <FormInput secureTextEntry placeholder="**************" value={password} onChangeText={onChangePassword} />
+      <FieldLabel>Nueva contraseña</FieldLabel>
+      <FormInput autoComplete="new-password" secureTextEntry placeholder="**************" value={password} onChangeText={onChangePassword} />
 
-      <FieldLabel>Verify password</FieldLabel>
-      <FormInput secureTextEntry placeholder="**************" value={verifyPassword} onChangeText={onChangeVerifyPassword} />
+      <FieldLabel>Confirmar contraseña</FieldLabel>
+      <FormInput autoComplete="new-password" secureTextEntry placeholder="**************" value={verifyPassword} onChangeText={onChangeVerifyPassword} />
 
       <ErrorMessage message={error} />
-      <PrimaryButton onPress={onContinue}>{buttonLabel}</PrimaryButton>
+      <PrimaryButton disabled={submitting} onPress={onContinue}>{buttonLabel}</PrimaryButton>
     </AuthShell>
   );
 }

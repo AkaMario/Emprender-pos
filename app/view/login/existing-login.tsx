@@ -1,6 +1,8 @@
-import { AuthShell, BRAND_GREEN, ErrorMessage, FieldLabel, FormInput, PrimaryButton } from "@/components/login/auth-ui";
+import { useDesignColors } from "@/constants/design";
+import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
+import { AuthShell, ErrorMessage, FieldLabel, FormInput, PrimaryButton } from "@/components/login/auth-ui";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 type ExistingLoginViewProps = {
   error: string;
@@ -27,33 +29,37 @@ export function ExistingLoginView({
   onForgotPassword,
   onSubmit,
 }: ExistingLoginViewProps) {
+  const c = useDesignColors();
   return (
     <AuthShell>
-      <FieldLabel>Username</FieldLabel>
-      <FormInput autoCapitalize="none" placeholder="Placeholder" value={username} onChangeText={onChangeUsername} />
+      <FieldLabel>Usuario</FieldLabel>
+      <FormInput autoCapitalize="none" placeholder="Tu usuario" autoComplete="username" value={username} onChangeText={onChangeUsername} />
 
-      <FieldLabel>Password</FieldLabel>
-      <FormInput secureTextEntry placeholder="Password" value={password} onChangeText={onChangePassword} />
+      <FieldLabel>Contraseña</FieldLabel>
+      <FormInput secureTextEntry placeholder="Tu contraseña" autoComplete="current-password" value={password} onChangeText={onChangePassword} />
 
-      <Pressable className="mb-5" onPress={onForgotPassword}>
-        <Text className="text-xs font-semibold" style={{ color: BRAND_GREEN }}>
-          Forgot your password?
+      <Pressable accessibilityRole="button" style={{ minHeight: 48, justifyContent: "center" }} className="mb-5" onPress={onForgotPassword}>
+        <Text className="text-xs font-semibold" style={{ color: c.link }}>
+          ¿Olvidaste tu contraseña?
         </Text>
       </Pressable>
 
       <ErrorMessage message={error} />
       <PrimaryButton disabled={submitting} onPress={onSubmit}>
-        {submitting ? "Ingresando..." : "Login"}
+        {submitting ? "Ingresando..." : "Iniciar sesión"}
       </PrimaryButton>
 
       <Pressable
-        className="mt-4 flex-row items-center gap-2"
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: rememberMe }}
+        accessibilityLabel="Recordarme"
+        style={{ minHeight: 48 }} className="mt-4 flex-row items-center gap-2"
         onPress={() => onChangeRememberMe(!rememberMe)}
       >
-        <View className="h-3 w-3 items-center justify-center border border-green-700">
-          {rememberMe ? <View className="h-2 w-2 bg-green-700" /> : null}
+        <View className="h-3 w-3 items-center justify-center border border-primary">
+          {rememberMe ? <View className="h-2 w-2 bg-primary" /> : null}
         </View>
-        <Text className="text-xs text-green-700">Recuerdame</Text>
+        <Text className="text-xs text-link">Recordarme</Text>
       </Pressable>
     </AuthShell>
   );

@@ -1,14 +1,17 @@
+import { Button } from "@/components/ui/button";
+import { useDesignColors } from "@/constants/design";
+import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
+import { useFormProtection } from "@/hooks/use-form-protection";
+import { AppAlert as Alert } from "@/components/ui/alerts";
+import { AppInput, AutoField } from "@/components/ui/form-input";
+import { ScreenScroll } from "@/components/ui/screen-scroll";
 import { Image } from "expo-image";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import * as Crypto from "expo-crypto";
 import {
-  Alert,
-  Pressable,
-  ScrollView,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import {
@@ -44,6 +47,7 @@ function formatCurrencyInput(value: string) {
 }
 
 export function PosScreen() {
+  const c = useDesignColors();
   const operationKey = useRef(Crypto.randomUUID());
   const router = useRouter();
   const [saleNumber, setSaleNumber] = useState("V-0001");
@@ -61,6 +65,7 @@ export function PosScreen() {
   const [transferQrUri, setTransferQrUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const { dialog, markSaved } = useFormProtection([cart, tableNumber, customerName, amountReceived, transferReference], saving);
   const loadData = useCallback(async () => {
     const [nextNumber, nextDishes, nextCustomers, qrUri] = await Promise.all([
       getNextSaleNumber(),
@@ -181,6 +186,7 @@ export function PosScreen() {
           },
         ],
       );
+      markSaved([[], tableNumber, customerName, "", ""]);
       setCart([]);
       operationKey.current = Crypto.randomUUID();
       setAmountReceived("");
@@ -199,11 +205,11 @@ export function PosScreen() {
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-slate-50 dark:bg-black"
+    <ScreenScroll
+      className="flex-1 bg-background "
       contentContainerClassName="gap-5 px-4 py-5 pb-10"
       showsVerticalScrollIndicator={false}
-    >
+    >{dialog}
       <Section title="Tipo de orden">
         <View className="flex-row flex-wrap gap-2">
           {orderTypes.map((item) => (
@@ -224,7 +230,7 @@ export function PosScreen() {
         ) : null}
         {orderType === "Domicilio" ? (
           <View className="gap-3">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <ScreenScroll horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row gap-2">
                 {customers.map((customer) => (
                   <Choice
@@ -238,7 +244,7 @@ export function PosScreen() {
                   />
                 ))}
               </View>
-            </ScrollView>
+            </ScreenScroll>
             <Input
               value={customerName}
               onChangeText={setCustomerName}
@@ -256,14 +262,13 @@ export function PosScreen() {
       </Section>
 
       <Section title="Agregar platos">
-        <View className="flex-row items-center gap-2 rounded-2xl bg-white px-3 dark:bg-slate-900">
-          <MaterialIcons name="search" size={22} color="#64748b" />
-          <TextInput
+        <View className="flex-row items-center gap-2 rounded-2xl bg-surface px-3 ">
+          <MaterialIcons name="search" size={22} color={c.icon} />
+          <AppInput
             value={search}
             onChangeText={setSearch}
             placeholder="Buscar plato"
-            placeholderTextColor="#94a3b8"
-            className="flex-1 py-3 text-base font-semibold text-slate-950 dark:text-white"
+            className="flex-1 py-3 text-base font-semibold text-text "
           />
         </View>
         {dishes.map((dish) => (
@@ -271,21 +276,21 @@ export function PosScreen() {
             key={dish.id}
             disabled={dish.stockStatus === "Sin Stock"}
             onPress={() => addDish(dish)}
-            className="flex-row items-center gap-3 rounded-2xl bg-white p-3 active:opacity-80 dark:bg-slate-900"
+            className="flex-row items-center gap-3 rounded-2xl bg-surface p-3 active:bg-surfaceElevated "
             style={{ opacity: dish.stockStatus === "Sin Stock" ? 0.5 : 1 }}
           >
-            <View className="h-12 w-12 items-center justify-center rounded-xl bg-orange-100">
-              <MaterialIcons name="local-bar" size={24} color="#f97316" />
+            <View className="h-12 w-12 items-center justify-center rounded-xl bg-primaryContainer">
+              <MaterialIcons name="local-bar" size={24} color={c.primary} />
             </View>
             <View className="flex-1">
-              <Text className="font-black text-slate-950 dark:text-white">
+              <Text className="font-black text-text ">
                 {dish.name}
               </Text>
-              <Text className="text-xs font-bold text-slate-500">
+              <Text className="text-xs font-bold text-muted">
                 {dish.size} · {dish.stockStatus}
               </Text>
             </View>
-            <Text className="font-black text-slate-950 dark:text-white">
+            <Text className="font-black text-text ">
               {formatCurrency(dish.price)}
             </Text>
           </Pressable>
@@ -294,48 +299,54 @@ export function PosScreen() {
 
       <Section title="Carrito">
         {cart.length === 0 ? (
-          <Text className="text-sm font-semibold text-slate-500">
+          <Text className="text-sm font-semibold text-muted">
             Agrega platos para iniciar la venta.
           </Text>
         ) : null}
         {cart.map((item) => (
           <View
             key={item.dish.id}
-            className="rounded-2xl bg-white p-3 dark:bg-slate-900"
+            className="rounded-2xl bg-surface p-3 "
           >
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1">
-                <Text className="font-black text-slate-950 dark:text-white">
+                <Text className="font-black text-text ">
                   {item.dish.name}
                 </Text>
-                <Text className="text-sm font-bold text-slate-500">
+                <Text className="text-sm font-bold text-muted">
                   {formatCurrency(item.dish.price * item.quantity)}
                 </Text>
               </View>
               <View className="flex-row items-center gap-2">
                 <Pressable
+                  accessibilityLabel={`Reducir cantidad de ${item.dish.name}`}
+                  disabled={saving}
                   onPress={() => updateQuantity(item.dish.id, -1)}
-                  className="rounded-full bg-slate-100 p-2"
+                  className="rounded-full bg-surfaceElevated p-2"
                 >
-                  <MaterialIcons name="remove" size={18} color="#0f172a" />
+                  <MaterialIcons name="remove" size={18} color={c.text} />
                 </Pressable>
-                <Text className="w-6 text-center font-black text-slate-950 dark:text-white">
+                <Text className="w-6 text-center font-black text-text ">
                   {item.quantity}
                 </Text>
                 <Pressable
+                  accessibilityLabel={`Aumentar cantidad de ${item.dish.name}`}
+                  disabled={saving}
                   onPress={() => updateQuantity(item.dish.id, 1)}
-                  className="rounded-full bg-slate-100 p-2"
+                  className="rounded-full bg-surfaceElevated p-2"
                 >
-                  <MaterialIcons name="add" size={18} color="#0f172a" />
+                  <MaterialIcons name="add" size={18} color={c.text} />
                 </Pressable>
                 <Pressable
+                  accessibilityLabel={`Quitar ${item.dish.name} del carrito`}
+                  disabled={saving}
                   onPress={() => removeItem(item.dish.id)}
-                  className="rounded-full bg-red-100 p-2"
+                  className="rounded-full bg-errorContainer p-2"
                 >
                   <MaterialIcons
                     name="delete-outline"
                     size={18}
-                    color="#dc2626"
+                    color={c.error}
                   />
                 </Pressable>
               </View>
@@ -378,7 +389,7 @@ export function PosScreen() {
               </View>
             ) : null}
               <View className="items-center gap-2">
-                <Text className="text-sm font-bold text-slate-500">
+                <Text className="text-sm font-bold text-muted">
                   Escanea el QR para transferir
                 </Text>
               </View>
@@ -391,7 +402,7 @@ export function PosScreen() {
         )}
       </Section>
 
-      <View className="rounded-3xl bg-white p-5 dark:bg-slate-900">
+      <View className="rounded-3xl bg-surface p-5 ">
         <TotalRow label="Subtotal" value={formatCurrency(subtotal)} />
         <TotalRow label="Domicilio" value={formatCurrency(deliveryFee)} />
         <TotalRow label="Total" value={formatCurrency(total)} strong />
@@ -403,16 +414,8 @@ export function PosScreen() {
         ) : null}
       </View>
 
-      <Pressable
-        disabled={saving}
-        onPress={confirmSale}
-        className="rounded-2xl bg-orange-600 px-5 py-4 active:opacity-85"
-      >
-        <Text className="text-center text-base font-black text-white">
-          {saving ? "Procesando..." : "Confirmar venta"}
-        </Text>
-      </Pressable>
-    </ScrollView>
+      <Button title="Confirmar venta" loading={saving} onPress={confirmSale} />
+    </ScreenScroll>
   );
 }
 
@@ -425,7 +428,7 @@ function Section({
 }) {
   return (
     <View className="gap-3">
-      <Text className="text-xl font-black text-slate-950 dark:text-white">
+      <Text className="text-xl font-black text-text ">
         {title}
       </Text>
       {children}
@@ -444,11 +447,13 @@ function Choice({
 }) {
   return (
     <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
       onPress={onPress}
-      className={`rounded-full px-4 py-3 ${selected ? "bg-slate-950" : "bg-white dark:bg-slate-900"}`}
+      className={`rounded-full px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
     >
       <Text
-        className={`text-sm font-black ${selected ? "text-white" : "text-slate-700 dark:text-slate-200"}`}
+        className={`text-sm font-black ${selected ? "text-onPrimary" : "text-text "}`}
       >
         {label}
       </Text>
@@ -456,11 +461,10 @@ function Choice({
   );
 }
 
-function Input(props: React.ComponentProps<typeof TextInput>) {
+function Input(props: React.ComponentProps<typeof AppInput>) {
   return (
-    <TextInput
-      placeholderTextColor="#94a3b8"
-      className="rounded-2xl bg-white px-4 py-4 text-base font-semibold text-slate-950 dark:bg-slate-900 dark:text-white"
+    <AutoField
+      className="rounded-2xl bg-surface px-4 py-4 text-base font-semibold text-text "
       {...props}
     />
   );
@@ -478,12 +482,12 @@ function TotalRow({
   return (
     <View className="flex-row items-center justify-between py-2">
       <Text
-        className={`${strong ? "text-lg" : "text-base"} font-bold text-slate-500`}
+        className={`${strong ? "text-lg" : "text-base"} font-bold text-muted`}
       >
         {label}
       </Text>
       <Text
-        className={`${strong ? "text-2xl" : "text-base"} font-black text-slate-950 dark:text-white`}
+        className={`${strong ? "text-2xl" : "text-base"} font-black text-text `}
       >
         {value}
       </Text>

@@ -1,7 +1,14 @@
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { Button } from "@/components/ui/button";
+import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
+import { LoadFeedback, useLoadFeedback } from "@/components/ui/load-feedback";
+import { ErrorText } from "@/components/business/ui";
+import { AppAlert as Alert } from "@/components/ui/alerts";
+import { useFormProtection } from "@/hooks/use-form-protection";
+import { AppInput, AutoField } from "@/components/ui/form-input";
+import { ScreenScroll } from "@/components/ui/screen-scroll";
+import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   adjustInventoryItem,
@@ -25,23 +32,23 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
   const [unitCost, setUnitCost] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
+  const { dialog, markSaved } = useFormProtection([quantity, supplier, invoiceNumber, unitCost, notes, reason], saving, true);
   const loadItems = useCallback(async () => {
     const nextItems = await getInventoryItems();
     setItems(nextItems);
     setSelectedItemId((current) => current ?? nextItems[0]?.id ?? null);
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadItems();
-    }, [loadItems])
-  );
+  const loadStatus = useLoadFeedback(loadItems);
 
   async function saveAdjustment() {
+    if (saving) return;
+    setAttempted(true);
     const numericQuantity = Number(quantity);
 
-    if (!numericQuantity || numericQuantity <= 0) {
+    if (!Number.isFinite(numericQuantity) || numericQuantity <= 0) {
       Alert.alert("Cantidad requerida", "Ingresa una cantidad mayor a cero.");
       return;
     }
@@ -67,8 +74,9 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
         notes,
       });
 
+      markSaved();
       Alert.alert("Inventario actualizado", "El movimiento fue registrado.", [
-        { text: "OK", onPress: () => router.back() },
+        { text: "OK", onPress: () => router.canGoBack() ? router.back() : router.replace("/") },
       ]);
     } catch (error) {
       Alert.alert("Error", error instanceof Error ? error.message : "No se pudo actualizar.");
@@ -78,18 +86,11 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-black">
-      <View className="flex-row items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-        <Pressable onPress={() => router.back()} className="rounded-full p-2 active:bg-slate-200">
-          <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
-        </Pressable>
-        <Text className="text-xl font-black text-slate-950 dark:text-white">
-          {isEntry ? "Entrada de Insumos" : "Salida de Stock"}
-        </Text>
-      </View>
+    <SafeAreaView edges={[]} className="flex-1 bg-background ">{dialog}
 
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-10">
-        <Text className="text-sm font-semibold text-slate-500">
+
+      <ScreenScroll contentContainerClassName="gap-4 p-4 pb-10"><LoadFeedback {...loadStatus} />
+        <Text className="text-sm font-semibold text-muted">
           {isEntry
             ? "Selecciona un insumo y registra la compra o recepcion."
             : "Selecciona el insumo y registra la salida por merma, daño o ajuste."}
@@ -97,18 +98,18 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
 
         {items.length > 0 ? (
           <View className="gap-2">
-            <Text className="text-sm font-black text-slate-600 dark:text-slate-300">Insumo</Text>
+            <Text className="text-sm font-black text-muted ">Insumo</Text>
             {items.map((item) => (
               <Pressable
                 key={item.id}
                 onPress={() => setSelectedItemId(item.id)}
-                className={`rounded-2xl p-4 ${selectedItemId === item.id ? "bg-slate-950" : "bg-white dark:bg-slate-900"}`}
+                className={`rounded-2xl p-4 ${selectedItemId === item.id ? "bg-primary" : "bg-surface "}`}
               >
                 <View className="flex-row items-center justify-between gap-3">
-                  <Text className={`font-black ${selectedItemId === item.id ? "text-white" : "text-slate-950 dark:text-white"}`}>
+                  <Text className={`font-black ${selectedItemId === item.id ? "text-onPrimary" : "text-text "}`}>
                     {item.name}
                   </Text>
-                  <Text className={`font-bold ${selectedItemId === item.id ? "text-white" : "text-slate-500"}`}>
+                  <Text className={`font-bold ${selectedItemId === item.id ? "text-onPrimary" : "text-muted"}`}>
                     {item.currentQuantity} {item.unit}
                   </Text>
                 </View>
@@ -118,7 +119,7 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
         ) : null}
 
         {items.length === 0 ? (
-          <Text className="rounded-2xl bg-white p-4 text-center font-semibold text-slate-500 dark:bg-slate-900">
+          <Text className="rounded-2xl bg-surface p-4 text-center font-semibold text-muted ">
             Primero registra insumos en el modulo Inventario.
           </Text>
         ) : null}
@@ -129,6 +130,7 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
           placeholder={isEntry ? "Cantidad recibida" : "Cantidad a descontar"}
           keyboardType="decimal-pad"
         />
+        {attempted && (!Number.isFinite(Number(quantity)) || Number(quantity) <= 0) && <ErrorText message="Ingresa una cantidad mayor que cero." />}
         {isEntry ? (
           <>
             <Input value={supplier} onChangeText={setSupplier} placeholder="Proveedor (opcional)" />
@@ -140,8 +142,8 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
           <>
             <View className="flex-row flex-wrap gap-2">
               {["Merma", "Daño", "Ajuste", "Caducado", "Otro"].map((item) => (
-                <Pressable key={item} onPress={() => setReason(item)} className={`rounded-full px-4 py-3 ${reason === item ? "bg-slate-950" : "bg-white dark:bg-slate-900"}`}>
-                  <Text className={`text-sm font-black ${reason === item ? "text-white" : "text-slate-700 dark:text-slate-200"}`}>{item}</Text>
+                <Pressable key={item} onPress={() => setReason(item)} className={`rounded-full px-4 py-3 ${reason === item ? "bg-primary" : "bg-surface "}`}>
+                  <Text className={`text-sm font-black ${reason === item ? "text-onPrimary" : "text-text "}`}>{item}</Text>
                 </Pressable>
               ))}
             </View>
@@ -149,25 +151,16 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
           </>
         )}
 
-        <Pressable
-          disabled={saving}
-          onPress={saveAdjustment}
-          className="rounded-2xl bg-orange-600 px-5 py-4 active:opacity-85"
-        >
-          <Text className="text-center font-black text-white">
-            {saving ? "Guardando..." : "Registrar movimiento"}
-          </Text>
-        </Pressable>
-      </ScrollView>
+        <Button title="Registrar movimiento" loading={saving} onPress={saveAdjustment} />
+      </ScreenScroll>
     </SafeAreaView>
   );
 }
 
-function Input(props: React.ComponentProps<typeof TextInput>) {
+function Input(props: React.ComponentProps<typeof AppInput>) {
   return (
-    <TextInput
-      placeholderTextColor="#94a3b8"
-      className="rounded-2xl bg-white px-4 py-4 text-base font-semibold text-slate-950 dark:bg-slate-900 dark:text-white"
+    <AutoField
+      className="rounded-2xl bg-surface px-4 py-4 text-base font-semibold text-text "
       {...props}
     />
   );

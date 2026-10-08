@@ -5,17 +5,20 @@
 
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useDesignColors } from '@/constants/design';
 
 export function useThemeColor(
   props: { light?: string; dark?: string },
   colorName: keyof typeof Colors.light & keyof typeof Colors.dark
 ) {
-  const theme = useColorScheme() ?? 'light';
+  const theme = useColorScheme();
+  const c = useDesignColors();
   const colorFromProps = props[theme];
 
   if (colorFromProps) {
     return colorFromProps;
   } else {
-    return Colors[theme][colorName];
+    const shared = { text: c.text, background: c.background, tint: c.primary, icon: c.icon, tabIconDefault: c.icon, tabIconSelected: c.primary };
+    return shared[colorName];
   }
 }

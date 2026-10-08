@@ -1,3 +1,7 @@
+import { useDesignColors } from "@/constants/design";
+import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
+import { AppAlert as Alert } from "@/components/ui/alerts";
+import { ScreenScroll } from "@/components/ui/screen-scroll";
 import { useAuth } from "@/context/auth";
 import { useBusiness } from "@/context/business";
 import {
@@ -12,10 +16,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Sharing from "expo-sharing";
 import React from "react";
 import {
-  Alert,
   Platform,
-  Pressable,
-  ScrollView,
   Text,
   View,
 } from "react-native";
@@ -25,6 +26,7 @@ export const unstable_settings = {
 };
 
 export default function Settings() {
+  const c = useDesignColors();
   const { profile, definition, isRestaurant } = useBusiness();
   const { logout } = useAuth();
   const router = useRouter();
@@ -137,113 +139,120 @@ export default function Settings() {
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-white dark:bg-black"
+    <ScreenScroll
+      className="flex-1 bg-surface "
       contentContainerClassName="px-6 py-5"
     >
-      <View className="gap-12">
-        <View className="gap-2 rounded-2xl bg-slate-100 p-4 dark:bg-slate-900">
-          <Text className="text-xl font-bold text-slate-950 dark:text-white">{profile?.name}</Text>
-          <Text className="text-base text-slate-700 dark:text-slate-200">{definition?.title}</Text>
-          <Text className="text-sm text-slate-500">Un solo tipo de emprendimiento por base de datos.</Text>
+      <View className="gap-10">
+        
+        <View className="gap-2 rounded-2xl bg-surfaceElevated p-4 ">
+          <Text className="text-xl font-bold text-text ">{profile?.name}</Text>
+          <Text className="text-base text-text ">{definition?.title}</Text>
         </View>
-        {isRestaurant && <Pressable
-          onPress={() => router.push("/view/category/category-view" as any)}
-          className="flex-row items-center gap-4"
-        >
-          <MaterialIcons name="category" size={24} color="black" />
 
-          <Text className="text-lg font-bold text-slate-900">
-            Categorias de productos e insumos
-          </Text>
-        </Pressable>}
+        <View className="flex flex-col gap-10 justify-center items-start">
+          {isRestaurant && <Pressable
+            onPress={() => router.push("/view/category/category-view" as any)}
+            className="flex-row items-center justify-start gap-4"
+          >
+            <MaterialIcons name="category" size={24} color={c.icon} />
 
-        <Pressable
-          onPress={() => router.push("/view/qr/select-qr" as any)}
-          className="flex-row items-center gap-4"
-        >
-          <MaterialCommunityIcons name="qrcode" size={24} color="black" />
+            <Text className="text-lg font-bold text-text">
+              Categorias de productos e insumos
+            </Text>
+          </Pressable>}
 
-          <Text className="text-lg font-bold text-slate-900">
-            QR de transferecias
-          </Text>
-        </Pressable>
+          <Pressable
+            onPress={() => router.push("/view/qr/select-qr" as any)}
+            className="flex-row items-center justify-start gap-4"
+          >
+            <MaterialCommunityIcons name="qrcode" size={24} color={c.icon} />
 
-        <Pressable
-          onPress={() => router.push("/view/settings/change-password" as any)}
-          className="flex-row items-center gap-4"
-        >
-          <MaterialCommunityIcons
-            name="form-textbox-password"
-            size={24}
-            color="black"
-          />
+            <Text className="text-lg font-bold text-text">
+              QR de transferecias
+            </Text>
+          </Pressable>
 
-          <Text className="text-lg font-bold text-slate-900">
-            Cambiar contraseña
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => router.push("/view/settings/change-pin" as any)}
-          className="flex-row items-center gap-4"
-        >
-          <MaterialIcons name="password" size={24} color="black" />
-          <Text className="text-lg font-bold text-slate-900">Cambiar PIN</Text>
-        </Pressable>
-        <Pressable
-          onPress={() =>
-            router.push("/view/settings/change-security-question" as any)
-          }
-          className="flex-row items-center gap-4"
-        >
-          <MaterialCommunityIcons
-            name="head-question-outline"
-            size={24}
-            color="black"
-          />
-          <Text className="text-lg font-bold text-slate-900">
-            Cambiar pregunta de seguridad
-          </Text>
-        </Pressable>
-        <Pressable
-          disabled={exporting}
-          onPress={handleExportDatabase}
-          className="flex-row items-center gap-4"
-        >
-          <MaterialIcons
-            name="settings-backup-restore"
-            size={24}
-            color="black"
-          />
-          <Text className="text-lg font-bold text-slate-900">
-            {exporting ? "Exportando..." : "Realizar backup"}
-          </Text>
-        </Pressable>
+          <Pressable
+            onPress={() => router.push("/view/settings/change-password" as any)}
+            className="flex-row items-center justify-start gap-4"
+          >
+            <MaterialCommunityIcons
+              name="form-textbox-password"
+              size={24}
+              color={c.icon}
+            />
 
-        <Pressable
-          disabled={importing}
-          onPress={handleImportDatabase}
-          className="flex-row items-center gap-4"
-          style={{ opacity: importing ? 0.6 : 1 }}
-        >
-          <MaterialIcons name="restore" size={24} color="black" />
-          <Text className="text-lg font-bold text-slate-900">
-            {importing ? "Importando..." : "Importar backup"}
-          </Text>
-        </Pressable>
+            <Text className="text-lg font-bold text-text">
+              Cambiar contraseña
+            </Text>
+          </Pressable>
 
-        <Pressable
-          disabled={loggingOut}
-          onPress={handleLogout || console.log("Cerrando sesion...")}
-          className="flex-row items-center gap-4"
-          style={{ opacity: loggingOut ? 0.6 : 1 }}
-        >
-          <MaterialIcons name="logout" size={24} color="black" />
-          <Text className="text-lg font-bold text-slate-900">
-            {loggingOut ? "Cerrando sesion..." : "Cerrar sesion"}
-          </Text>
-        </Pressable>
+          <Pressable
+            onPress={() => router.push("/view/settings/change-pin" as any)}
+            className="flex-row items-center justify-start gap-4"
+          >
+            <MaterialIcons name="password" size={24} color={c.icon} />
+            <Text className="text-lg font-bold text-text">Cambiar PIN</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() =>
+              router.push("/view/settings/change-security-question" as any)
+            }
+            className="flex-row items-center justify-start gap-4"
+          >
+            <MaterialCommunityIcons
+              name="head-question-outline"
+              size={24}
+              color={c.icon}
+            />
+            <Text className="text-lg font-bold text-text">
+              Cambiar pregunta de seguridad
+            </Text>
+          </Pressable>
+
+          <Pressable
+            disabled={exporting}
+            onPress={handleExportDatabase}
+            className="flex-row items-center justify-start gap-4"
+          >
+            <MaterialIcons
+              name="settings-backup-restore"
+              size={24}
+              color={c.icon}
+            />
+            <Text className="text-lg font-bold text-text">
+              {exporting ? "Exportando..." : "Realizar backup"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            disabled={importing}
+            onPress={handleImportDatabase}
+            className="flex-row items-center justify-start gap-4"
+            style={{ opacity: importing ? 0.6 : 1 }}
+          >
+            <MaterialIcons name="restore" size={24} color={c.icon} />
+            <Text className="text-lg font-bold text-text">
+              {importing ? "Importando..." : "Importar backup"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            disabled={loggingOut}
+            onPress={handleLogout || console.log("Cerrando sesion...")}
+            className="flex-row items-center justify-start gap-4"
+            style={{ opacity: loggingOut ? 0.6 : 1 }}
+          >
+            <MaterialIcons name="logout" size={24} color={c.icon} />
+            <Text className="text-lg font-bold text-text">
+              {loggingOut ? "Cerrando sesion..." : "Cerrar sesion"}
+            </Text>
+          </Pressable>
+          
+        </View>
       </View>
-    </ScrollView>
+    </ScreenScroll>
   );
 }

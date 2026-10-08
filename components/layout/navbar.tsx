@@ -1,151 +1,32 @@
-import { Colors } from "@/constants/theme";
-import { useAuth } from "@/context/auth";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import AntDesign from "@expo/vector-icons/AntDesign";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useFocusEffect, usePathname, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
-import { Pressable, Text, TouchableOpacity, View } from "react-native";
-import { getUnreadAlertsCount } from "@/database/pos-database";
-import { useBusiness } from "@/context/business";
+import { useAuth } from '@/context/auth';
+import { useBusiness } from '@/context/business';
+import { useDesignColors } from '@/constants/design';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useFocusEffect, usePathname, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { Text, View } from 'react-native';
+import { ActionPressable as Pressable } from '@/components/ui/action-pressable';
+import { getUnreadAlertsCount } from '@/database/pos-database';
 
-interface NavbarProps {
-  title?: string;
-  onMenuPress?: () => void;
-}
-
-export function Navbar({ title = "Bienvenido", onMenuPress }: NavbarProps) {
-  const { definition, isRestaurant } = useBusiness();
-  const colorScheme = useColorScheme();
-  const pathname = usePathname();
-  const router = useRouter();
-  const isHome = pathname === "/" || pathname.includes("index");
-  const isDashboard = pathname.includes("dashboard");
-  const isMenu = pathname.includes("menu");
-  const isSales = pathname.includes("sales");
-  const isReports = pathname.includes("reports");
-  const isInventory = pathname.includes("inventory");
-  const isSettings = pathname.includes("settings");
-  const isOperations = pathname.includes("operations");
-  const isDark = colorScheme === "dark";
-  const backgroundColor = isDark
-    ? Colors.dark.background
-    : Colors.light.background;
-  const textColor = isDark ? "#fff" : "#000";
-
-  const { username } = useAuth();
-  const [alertCount, setAlertCount] = useState(0);
-
-  const loadAlertCount = useCallback(async () => {
-    if (isRestaurant) setAlertCount(await getUnreadAlertsCount());
-  }, [isRestaurant]);
-
-  useFocusEffect(
-    useCallback(() => {
-      let mounted = true;
-
-      async function loadFocusedAlertCount() {
-        const count = isRestaurant ? await getUnreadAlertsCount() : 0;
-        if (mounted) {
-          setAlertCount(count);
-        }
-      }
-
-      loadFocusedAlertCount();
-
-      return () => {
-        mounted = false;
-      };
-    }, [isRestaurant])
-  );
-
-  useEffect(() => {
-    const intervalId = setInterval(loadAlertCount, 5000);
-
-    return () => clearInterval(intervalId);
-  }, [loadAlertCount]);
-
-  return (
-    <View
-      className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700"
-      style={{ backgroundColor }}
-    >
-      {!isSettings && (
-        <TouchableOpacity onPress={onMenuPress} className="p-2">
-          <AntDesign
-            name="menu"
-            size={24}
-            className="text-black dark:text-white"
-          />
-        </TouchableOpacity>
-      )}
-
-      {(isHome || isDashboard || isMenu || isSales || isReports || isInventory || isOperations) && (
-        <Text
-          className="text-lg font-bold flex-1 text-center"
-          style={{ color: textColor }}
-        >
-          {isMenu
-            ? definition?.catalog
-            : isSales
-              ? "Ventas"
-              : isReports
-                ? "Reportes"
-                : isInventory
-                  ? definition?.inventory
-                  : isOperations ? definition?.operations
-              : username
-                ? `Bienvenido(a), ${username}`
-                : "Inicio"}
-        </Text>
-      )}
-      {isSettings && (
-        <View className="flex-row items-center justify-start flex-1">
-          <Pressable
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace("/");
-              }
-            }}
-            className="flex-row items-center gap-4"
-            id="back-button"
-          >
-            <Ionicons
-              name="arrow-back-outline"
-              size={20}
-              className="text-black dark:text-white"
-            />
-            <Text
-              className="text-lg font-bold text-center"
-              style={{ color: textColor }}
-            >
-              Regresar
-            </Text>
-          </Pressable>
-        </View>
-      )}
-      {!isSettings && isRestaurant ? (
-        <Pressable
-          onPress={() => router.push("/view/dashboard/alerts" as any)}
-          className="relative p-2"
-        >
-          <MaterialIcons
-            name="notifications-none"
-            size={26}
-            className="text-black dark:text-white"
-          />
-          {alertCount > 0 ? (
-            <View className="absolute right-1 top-1 h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1">
-              <Text className="text-xs font-black text-white">{alertCount}</Text>
-            </View>
-          ) : null}
-        </Pressable>
-      ) : (
-        <View className="w-8" />
-      )}
-    </View>
-  );
+export function Navbar({ title, onMenuPress }: { title?: string; onMenuPress?: () => void }) {
+  const { definition, isRestaurant } = useBusiness(); const { username } = useAuth();
+  const c = useDesignColors(); const pathname = usePathname(); const router = useRouter();
+  const secondary = pathname.startsWith('/view/'); const [alertCount, setAlertCount] = useState(0);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    const refresh = async () => {
+      try { const count = isRestaurant ? await getUnreadAlertsCount() : 0; if (active) setAlertCount(count); }
+      catch { /* Keep the previous count if a transient database read fails. */ }
+    };
+    void refresh();
+    const timer = isRestaurant ? setInterval(() => { void refresh(); }, 5000) : undefined;
+    return () => { active = false; if (timer) clearInterval(timer); };
+  }, [isRestaurant]));
+  const titles: Record<string, string | undefined> = { menu: definition?.catalog, sales: 'Ventas', reports: 'Reportes', inventory: definition?.inventory, settings: 'Configuración', operations: definition?.operations, dashboard: 'Resumen' };
+  const currentTitle = title ?? titles[pathname.split('/').pop() ?? ''] ?? (username ? `Hola, ${username}` : 'Inicio');
+  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: c.surface, borderBottomWidth: 1, borderColor: c.border }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={secondary ? 'Regresar' : 'Abrir menú de navegación'} onPress={secondary ? () => router.canGoBack() ? router.back() : router.replace('/') : onMenuPress} style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}><Ionicons name={secondary ? 'arrow-back' : 'menu'} size={24} color={c.text} /></Pressable>
+    <Text accessibilityRole="header" style={{ flex: 1, fontSize: 20, fontWeight: '700', color: c.text }}>{currentTitle}</Text>
+    {isRestaurant && !secondary && <Pressable accessibilityRole="button" accessibilityLabel={`Notificaciones${alertCount ? `, ${alertCount} sin leer` : ''}`} onPress={() => router.push('/view/dashboard/alerts')} style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="notifications-outline" size={24} color={c.text} />{alertCount > 0 && <View style={{ position: 'absolute', right: 0, top: 0, borderRadius: 12, backgroundColor: c.error, paddingHorizontal: 5 }}><Text style={{ color: c.onError, fontSize: 12 }}>{alertCount > 99 ? '99+' : alertCount}</Text></View>}</Pressable>}
+  </View>;
 }

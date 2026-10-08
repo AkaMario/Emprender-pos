@@ -1,10 +1,16 @@
+import { Button } from "@/components/ui/button";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useDesignColors } from "@/constants/design";
+import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
+import { LoadFeedback, useLoadFeedback } from "@/components/ui/load-feedback";
+import { AppAlert as Alert } from "@/components/ui/alerts";
+import { ScreenScroll } from "@/components/ui/screen-scroll";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Text, View } from "react-native";
 import {
   formatCurrency,
   formatSaleTime,
@@ -19,7 +25,6 @@ import {
 } from "@/database/pos-database";
 
 const periods: ReportPeriod[] = ["Dia", "Semana", "Mes", "Personalizado"];
-const categoryColors = ["#f97316", "#7c3aed", "#0ea5e9", "#64748b"];
 
 function toDateText(date: Date) {
   const year = date.getFullYear();
@@ -65,6 +70,8 @@ function periodRangeText(period: ReportPeriod, date: Date, customStart?: string,
 }
 
 export function ReportsScreen() {
+  const c = useDesignColors();
+  const colorScheme = useColorScheme();
   const [period, setPeriod] = useState<ReportPeriod>("Dia");
   const [date, setDate] = useState(new Date());
   const [customStart, setCustomStart] = useState("");
@@ -89,11 +96,7 @@ export function ReportsScreen() {
     );
   }, [compareDate, date, period, customStart, customEnd]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadReports();
-    }, [loadReports])
-  );
+  const loadStatus = useLoadFeedback(loadReports);
 
   async function handleExport() {
     setExporting(true);
@@ -214,56 +217,47 @@ export function ReportsScreen() {
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-slate-50 dark:bg-black"
+    <ScreenScroll
+      className="flex-1 bg-background "
       contentContainerClassName="gap-5 px-4 py-5 pb-10"
       showsVerticalScrollIndicator={false}
-    >
-      <Pressable
-        disabled={exporting}
-        onPress={handleExport}
-        className="flex-row items-center justify-center gap-2 rounded-2xl bg-orange-700 px-5 py-4 active:opacity-85"
-      >
-        <MaterialIcons name="file-download" size={22} color="white" />
-        <Text className="font-black text-white">
-          {exporting ? "Exportando..." : "Exportar Excel"}
-        </Text>
-      </Pressable>
+    ><LoadFeedback {...loadStatus} />
+      <Button title="Exportar Excel" loading={exporting} onPress={handleExport} icon={(color) => <MaterialIcons name="file-download" size={22} color={color} />} />
 
       <View className="gap-3">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScreenScroll horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
             {periods.map((item) => (
               <Pressable
                 key={item}
                 onPress={() => setPeriod(item)}
-                className={`rounded-full px-4 py-3 ${period === item ? "bg-slate-950" : "bg-white dark:bg-slate-900"}`}
+                className={`rounded-full px-4 py-3 ${period === item ? "bg-primary" : "bg-surface "}`}
               >
-                <Text className={`text-sm font-black ${period === item ? "text-white" : "text-slate-700 dark:text-slate-200"}`}>
+                <Text className={`text-sm font-black ${period === item ? "text-onPrimary" : "text-text "}`}>
                   {item}
                 </Text>
               </Pressable>
             ))}
           </View>
-        </ScrollView>
+        </ScreenScroll>
 
         {period === "Personalizado" ? (
           <View className="flex-row gap-2">
             <Pressable
               onPress={() => openPicker("customStart")}
-              className="flex-1 rounded-2xl bg-white px-4 py-4 dark:bg-slate-900"
+              className="flex-1 rounded-2xl bg-surface px-4 py-4 "
             >
-              <Text className="text-xs font-bold text-slate-500">Inicio</Text>
-              <Text className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
+              <Text className="text-xs font-bold text-muted">Inicio</Text>
+              <Text className="mt-1 text-base font-semibold text-text ">
                 {customStart || "Seleccionar"}
               </Text>
             </Pressable>
             <Pressable
               onPress={() => openPicker("customEnd")}
-              className="flex-1 rounded-2xl bg-white px-4 py-4 dark:bg-slate-900"
+              className="flex-1 rounded-2xl bg-surface px-4 py-4 "
             >
-              <Text className="text-xs font-bold text-slate-500">Fin</Text>
-              <Text className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
+              <Text className="text-xs font-bold text-muted">Fin</Text>
+              <Text className="mt-1 text-base font-semibold text-text ">
                 {customEnd || "Seleccionar"}
               </Text>
             </Pressable>
@@ -271,10 +265,10 @@ export function ReportsScreen() {
         ) : (
           <Pressable
             onPress={() => openPicker("date")}
-            className="rounded-2xl bg-white px-4 py-4 dark:bg-slate-900"
+            className="rounded-2xl bg-surface px-4 py-4 "
           >
-            <Text className="text-xs font-bold text-slate-500">Fecha</Text>
-            <Text className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
+            <Text className="text-xs font-bold text-muted">Fecha</Text>
+            <Text className="mt-1 text-base font-semibold text-text ">
               {periodRangeText(period, date)}
             </Text>
           </Pressable>
@@ -284,6 +278,9 @@ export function ReportsScreen() {
           <DateTimePicker
             value={pickerValue()}
             mode="date"
+            themeVariant={colorScheme}
+            accentColor={c.primary}
+            textColor={c.text}
             display={Platform.OS === "ios" ? "inline" : "default"}
             onChange={handlePickerChange}
           />
@@ -292,9 +289,9 @@ export function ReportsScreen() {
         {Platform.OS === "ios" && showPicker ? (
           <Pressable
             onPress={() => setShowPicker(false)}
-            className="items-center rounded-2xl bg-slate-200 px-4 py-3 dark:bg-slate-800"
+            className="items-center rounded-2xl bg-surfaceElevated px-4 py-3 "
           >
-            <Text className="font-bold text-slate-700 dark:text-slate-200">Cerrar calendario</Text>
+            <Text className="font-bold text-text ">Cerrar calendario</Text>
           </Pressable>
         ) : null}
       </View>
@@ -319,10 +316,10 @@ export function ReportsScreen() {
       <ReportCard title="Tendencia horaria">
         <Pressable
           onPress={() => openPicker("compare")}
-          className="mb-3 rounded-2xl bg-slate-100 px-4 py-3 dark:bg-slate-800"
+          className="mb-3 rounded-2xl bg-surfaceElevated px-4 py-3 "
         >
-          <Text className="text-xs font-bold text-slate-500">Comparar con</Text>
-          <Text className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
+          <Text className="text-xs font-bold text-muted">Comparar con</Text>
+          <Text className="mt-1 text-base font-semibold text-text ">
             {compareDate || "Seleccionar fecha (opcional)"}
           </Text>
         </Pressable>
@@ -335,23 +332,23 @@ export function ReportsScreen() {
       <ReportCard title="Top productos">
         <TopProductsList data={reports?.topProducts ?? []} />
       </ReportCard>
-    </ScrollView>
+    </ScreenScroll>
   );
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <View className="flex-1 rounded-2xl bg-white p-4 dark:bg-slate-900">
-      <Text className="text-sm font-bold text-slate-500">{label}</Text>
-      <Text className="mt-2 text-2xl font-black text-slate-950 dark:text-white">{value}</Text>
+    <View className="flex-1 rounded-2xl bg-surface p-4 ">
+      <Text className="text-sm font-bold text-muted">{label}</Text>
+      <Text className="mt-2 text-2xl font-black text-text ">{value}</Text>
     </View>
   );
 }
 
 function ReportCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View className="rounded-3xl bg-white p-4 dark:bg-slate-900">
-      <Text className="mb-4 text-xl font-black text-slate-950 dark:text-white">{title}</Text>
+    <View className="rounded-3xl bg-surface p-4 ">
+      <Text className="mb-4 text-xl font-black text-text ">{title}</Text>
       {children}
     </View>
   );
@@ -371,17 +368,17 @@ function WeeklyBarChart({
 
   return (
     <View>
-      <View className="h-44 flex-row items-end gap-2 border-b border-l border-slate-200 pb-2 pl-2 dark:border-slate-700">
+      <View className="h-44 flex-row items-end gap-2 border-b border-l border-separator pb-2 pl-2 ">
         {data.map((item) => {
           const height = Math.max(8, Math.round((item.total / maxTotal) * 130));
 
           return (
             <Pressable key={item.day} onPress={() => onSelect(item)} className="flex-1 items-center justify-end">
-              <Text className="mb-1 text-[10px] font-bold text-slate-500">
+              <Text className="mb-1 text-[10px] font-bold text-muted">
                 {item.total > 0 ? formatCurrency(item.total) : ""}
               </Text>
               <View
-                className={`w-full rounded-t-xl ${item.isToday ? "bg-orange-500" : "bg-slate-800 dark:bg-slate-200"}`}
+                className={`w-full rounded-t-xl ${item.isToday ? "bg-primary" : "bg-chart4"}`}
                 style={{ height }}
               />
             </Pressable>
@@ -390,16 +387,16 @@ function WeeklyBarChart({
       </View>
       <View className="mt-2 flex-row gap-2 pl-2">
         {data.map((item) => (
-          <Text key={item.day} className="flex-1 text-center text-xs font-black text-slate-500">
+          <Text key={item.day} className="flex-1 text-center text-xs font-black text-muted">
             {item.day}
           </Text>
         ))}
       </View>
-      <Text className="mt-3 text-sm font-bold text-slate-500">
+      <Text className="mt-3 text-sm font-bold text-muted">
         Tendencia: {trend >= 0 ? "sube" : "baja"} {formatCurrency(Math.abs(trend))} de Lun a Dom
       </Text>
       {selectedBar ? (
-        <Text className="mt-2 rounded-xl bg-orange-100 p-3 text-center font-black text-orange-700">
+        <Text className="mt-2 rounded-xl bg-primaryContainer p-3 text-center font-black text-link">
           {selectedBar.day}: {formatCurrency(selectedBar.total)}
         </Text>
       ) : null}
@@ -408,23 +405,25 @@ function WeeklyBarChart({
 }
 
 function CategoryPieChart({ data }: { data: CategorySales[] }) {
+  const c = useDesignColors();
+  const categoryColors = [c.chart1, c.chart2, c.chart3, c.chart4];
   const total = data.reduce((sum, item) => sum + item.total, 0);
 
   return (
     <View className="gap-4">
       <View className="items-center">
-        <View className="h-36 w-36 items-center justify-center rounded-full border-[18px] border-orange-500 bg-white dark:bg-slate-900">
-          <Text className="text-3xl font-black text-slate-950 dark:text-white">100%</Text>
-          <Text className="text-xs font-bold text-slate-500">{formatCurrency(total)}</Text>
+        <View className="h-36 w-36 items-center justify-center rounded-full border-[18px] border-primary bg-surface ">
+          <Text className="text-3xl font-black text-text ">100%</Text>
+          <Text className="text-xs font-bold text-muted">{formatCurrency(total)}</Text>
         </View>
       </View>
-      <View className="h-5 flex-row overflow-hidden rounded-full bg-slate-100">
+      <View className="h-5 flex-row overflow-hidden rounded-full bg-surfaceElevated">
         {data.map((item, index) => (
           <View
             key={item.category}
             style={{
               width: `${item.percentage}%`,
-              backgroundColor: categoryColors[index],
+              backgroundColor: categoryColors[index % categoryColors.length],
             }}
           />
         ))}
@@ -432,10 +431,10 @@ function CategoryPieChart({ data }: { data: CategorySales[] }) {
       {data.map((item, index) => (
         <View key={item.category} className="flex-row items-center justify-between gap-3">
           <View className="flex-row items-center gap-2">
-            <View className="h-3 w-3 rounded-full" style={{ backgroundColor: categoryColors[index] }} />
-            <Text className="font-bold text-slate-600 dark:text-slate-300">{item.category}</Text>
+            <View className="h-3 w-3 rounded-full" style={{ backgroundColor: categoryColors[index % categoryColors.length] }} />
+            <Text className="font-bold text-muted ">{item.category}</Text>
           </View>
-          <Text className="font-black text-slate-950 dark:text-white">
+          <Text className="font-black text-text ">
             {item.percentage}% · {formatCurrency(item.total)}
           </Text>
         </View>
@@ -455,7 +454,7 @@ function HourlyLineChart({ data, compareData }: { data: HourlySales[]; compareDa
 
   return (
     <View>
-      <View className="h-40 flex-row items-end gap-1 border-b border-l border-slate-200 bg-orange-50/60 pb-2 pl-2 dark:border-slate-700 dark:bg-orange-950/20">
+      <View className="h-40 flex-row items-end gap-1 border-b border-l border-separator bg-primaryContainer pb-2 pl-2 ">
         {data.map((item, index) => {
           const height = Math.max(6, Math.round((item.orders / maxOrders) * 120));
           const compareHeight = Math.max(0, Math.round(((compareData[index]?.orders ?? 0) / maxOrders) * 120));
@@ -463,10 +462,10 @@ function HourlyLineChart({ data, compareData }: { data: HourlySales[]; compareDa
 
           return (
             <View key={item.hour} className="flex-1 items-center justify-end">
-              {isPeak ? <Text className="mb-1 text-[10px] font-black text-orange-700">{item.orders}</Text> : null}
+              {isPeak ? <Text className="mb-1 text-[10px] font-black text-link">{item.orders}</Text> : null}
               <View className="w-full items-center justify-end" style={{ height: 124 }}>
-                {compareHeight > 0 ? <View className="absolute bottom-0 w-1 rounded-full bg-slate-400" style={{ height: compareHeight }} /> : null}
-                <View className={`w-2 rounded-full ${isPeak ? "bg-orange-600" : "bg-orange-400"}`} style={{ height }} />
+                {compareHeight > 0 ? <View className="absolute bottom-0 w-1 rounded-full bg-chart4" style={{ height: compareHeight }} /> : null}
+                <View className={`w-2 rounded-full ${isPeak ? "bg-primary" : "bg-primary"}`} style={{ height }} />
               </View>
             </View>
           );
@@ -474,12 +473,12 @@ function HourlyLineChart({ data, compareData }: { data: HourlySales[]; compareDa
       </View>
       <View className="mt-2 flex-row gap-1 pl-2">
         {data.map((item) => (
-          <Text key={item.hour} className="flex-1 text-center text-[10px] font-black text-slate-500">
+          <Text key={item.hour} className="flex-1 text-center text-[10px] font-black text-muted">
             {item.hour > 12 ? `${item.hour - 12}p` : `${item.hour}a`}
           </Text>
         ))}
       </View>
-      <Text className="mt-3 text-sm font-bold text-slate-500">
+      <Text className="mt-3 text-sm font-bold text-muted">
         Punto maximo: {peak ? `${peak.hour}:00 con ${peak.orders} ordenes` : "sin datos"}
       </Text>
     </View>
@@ -490,23 +489,23 @@ function TopProductsList({ data }: { data: TopProduct[] }) {
   const maxQuantity = Math.max(1, ...data.map((item) => item.quantity));
 
   if (data.length === 0) {
-    return <Text className="text-center text-sm font-semibold text-slate-500">No hay productos vendidos en este periodo.</Text>;
+    return <Text className="text-center text-sm font-semibold text-muted">No hay productos vendidos en este periodo.</Text>;
   }
 
   return (
     <View className="gap-3">
       {data.map((item, index) => (
-        <View key={`${item.dishName}-${index}`} className="gap-2 rounded-2xl bg-slate-50 p-3 dark:bg-slate-800">
+        <View key={`${item.dishName}-${index}`} className="gap-2 rounded-2xl bg-background p-3 ">
           <View className="flex-row items-center justify-between gap-3">
-            <Text className="flex-1 font-black text-slate-950 dark:text-white">
+            <Text className="flex-1 font-black text-text ">
               {index + 1}. {item.dishName}
             </Text>
-            <Text className="font-black text-slate-950 dark:text-white">{item.quantity} und</Text>
+            <Text className="font-black text-text ">{item.quantity} und</Text>
           </View>
-          <View className="h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-            <View className="h-full rounded-full bg-orange-500" style={{ width: `${(item.quantity / maxQuantity) * 100}%` }} />
+          <View className="h-3 overflow-hidden rounded-full bg-surfaceElevated ">
+            <View className="h-full rounded-full bg-primary" style={{ width: `${(item.quantity / maxQuantity) * 100}%` }} />
           </View>
-          <Text className="text-sm font-bold text-slate-500">Ingreso: {formatCurrency(item.total)}</Text>
+          <Text className="text-sm font-bold text-muted">Ingreso: {formatCurrency(item.total)}</Text>
         </View>
       ))}
     </View>

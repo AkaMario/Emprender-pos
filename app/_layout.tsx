@@ -1,11 +1,11 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router/react-navigation";
+import { AlertHost } from "@/components/ui/alerts";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { ThemeRoot } from "@/components/layout/theme-root";
 import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "../global.css";
 import { AuthProvider, useAuth } from "@/context/auth";
 import { BusinessProvider, useBusiness } from "@/context/business";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Button, ErrorText, Loading, Page } from "@/components/business/ui";
 
 export const unstable_settings = { anchor: "(tabs)" };
@@ -21,15 +21,13 @@ function RootNavigator() {
       <Stack.Protected guard={isAuthenticated && Boolean(profile)}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="view" />
-        <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
+        <Stack.Screen name="modal" options={{ presentation: "transparentModal", title: "Información" }} />
       </Stack.Protected>
     </Stack>
-    <StatusBar style="auto" />
   </>;
 }
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  return <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-    <AuthProvider><BusinessProvider><RootNavigator /></BusinessProvider></AuthProvider>
-  </ThemeProvider>;
+  return <SafeAreaProvider><ThemeRoot>
+    <AuthProvider><BusinessProvider><RootNavigator /><AlertHost /></BusinessProvider></AuthProvider>
+  </ThemeRoot></SafeAreaProvider>;
 }

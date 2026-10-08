@@ -1,14 +1,17 @@
+import { Button } from "@/components/ui/button";
+import { useDesignColors } from "@/constants/design";
+import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
+import { AppAlert as Alert } from "@/components/ui/alerts";
+import { useFormProtection } from "@/hooks/use-form-protection";
+import { FieldGroup as Field, AppInput } from "@/components/ui/form-input";
+import { ScreenScroll } from "@/components/ui/screen-scroll";
 import { Image } from "expo-image";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  Pressable,
-  ScrollView,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,6 +32,7 @@ interface DishFormScreenProps {
 }
 
 export function DishFormScreen({ mode }: DishFormScreenProps) {
+  const c = useDesignColors();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEdit = mode === "edit";
@@ -44,6 +48,8 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
   const [recipeQuantities, setRecipeQuantities] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
 
+  const [formLoading, setFormLoading] = useState(true);
+  const { dialog, markSaved } = useFormProtection([name, description, price, category, size, imageUri, recipeQuantities], saving, !formLoading);
   useEffect(() => {
     let mounted = true;
 
@@ -82,7 +88,7 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
       );
     }
 
-    loadData();
+    void loadData().catch((error) => { Alert.alert("No se pudo cargar", error instanceof Error ? error.message : "Intenta nuevamente."); }).finally(() => { if (mounted) setFormLoading(false); });
 
     return () => {
       mounted = false;
@@ -132,8 +138,16 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
     setPrice(value.replace(/[^0-9]/g, ""));
   }
 
+  const [attempted, setAttempted] = useState(false);
+  const fieldErrors = attempted ? {
+    name: name.trim() ? '' : 'Escribe el nombre del plato.',
+    price: price.trim() && Number.isFinite(Number(price)) && Number(price) >= 0 ? '' : 'Ingresa un precio válido en COP.',
+    category: category ? '' : 'Selecciona una categoría.',
+  } : { name: '', price: '', category: '' };
   async function saveDish() {
-    if (!name.trim() || !price.trim() || !category) {
+    if (saving || formLoading) return;
+    setAttempted(true);
+    if (!name.trim() || !price.trim() || !Number.isFinite(Number(price)) || Number(price) < 0 || !category) {
       Alert.alert("Campos requeridos", "Nombre, precio y una categoria son obligatorios. Crea una categoria desde Configuraciones si aún no existe.");
       return;
     }
@@ -156,8 +170,9 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
           .filter((item) => item.quantity > 0),
       });
 
+      markSaved();
       Alert.alert(isEdit ? "Plato actualizado" : "Plato creado", "El menu fue actualizado.", [
-        { text: "OK", onPress: () => router.back() },
+        { text: "OK", onPress: () => router.canGoBack() ? router.back() : router.replace("/") },
       ]);
     } catch (error) {
       Alert.alert("Error", error instanceof Error ? error.message : "No se pudo guardar.");
@@ -167,27 +182,15 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-black">
-      <View className="flex-row items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-        <Pressable onPress={() => router.back()} className="rounded-full p-2 active:bg-slate-200">
-          <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
-        </Pressable>
-        <View className="flex-1">
-          <Text className="text-xl font-black text-slate-950 dark:text-white">
-            {isEdit ? "Editar plato" : "Crear plato"}
-          </Text>
-          {isEdit ? (
-            <Text className="text-sm font-semibold text-slate-500">ID no editable: {id}</Text>
-          ) : null}
-        </View>
-      </View>
+    <SafeAreaView edges={[]} className="flex-1 bg-background ">{dialog}
 
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-10">
-        <View className="rounded-3xl bg-white p-4 dark:bg-slate-900">
-          <Text className="text-sm font-black text-slate-500">Imagen del plato</Text>
+
+      <ScreenScroll contentContainerClassName="gap-4 p-4 pb-10">
+        <View className="rounded-3xl bg-surface p-4 ">
+          <Text className="text-sm font-black text-muted">Imagen del plato</Text>
           <Pressable
             onPress={handleImagePress}
-            className="mt-3 h-32 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800"
+            className="mt-3 h-32 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-background "
           >
             {imageUri ? (
               <Image
@@ -197,49 +200,46 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
               />
             ) : (
               <>
-                <MaterialIcons name="add-photo-alternate" size={34} color="#f97316" />
-                <Text className="mt-2 text-sm font-bold text-slate-500">Asociar imagen opcional</Text>
+                <MaterialIcons name="add-photo-alternate" size={34} color={c.primary} />
+                <Text className="mt-2 text-sm font-bold text-muted">Asociar imagen opcional</Text>
               </>
             )}
           </Pressable>
         </View>
 
-        <Field label="Nombre">
-          <TextInput
+        <Field label="Nombre *" error={fieldErrors.name}>
+          <AppInput
             value={name}
             onChangeText={setName}
             placeholder="Nombre del plato"
-            placeholderTextColor="#94a3b8"
-            className="rounded-2xl bg-white px-4 py-4 text-base font-semibold text-slate-950 dark:bg-slate-900 dark:text-white"
+            className="rounded-2xl bg-surface px-4 py-4 text-base font-semibold text-text "
           />
         </Field>
 
         <Field label="Descripcion">
-          <TextInput
+          <AppInput
             value={description}
             onChangeText={setDescription}
             placeholder="Ingredientes principales y notas del plato"
-            placeholderTextColor="#94a3b8"
             multiline
-            className="min-h-24 rounded-2xl bg-white px-4 py-4 text-base font-semibold text-slate-950 dark:bg-slate-900 dark:text-white"
+            className="min-h-24 rounded-2xl bg-surface px-4 py-4 text-base font-semibold text-text "
             textAlignVertical="top"
           />
         </Field>
 
-        <Field label="Precio">
-          <TextInput
+        <Field label="Precio en COP *" error={fieldErrors.price}>
+          <AppInput
             value={price}
             onChangeText={updatePrice}
             keyboardType="number-pad"
             placeholder="Solo numeros positivos"
-            placeholderTextColor="#94a3b8"
-            className="rounded-2xl bg-white px-4 py-4 text-base font-semibold text-slate-950 dark:bg-slate-900 dark:text-white"
+            className="rounded-2xl bg-surface px-4 py-4 text-base font-semibold text-text "
           />
         </Field>
 
-        <Field label="Categoria">
+        <Field label="Categoría *" error={fieldErrors.category}>
           <View className="flex-row flex-wrap gap-2">
-            {categories.length === 0 ? <Text className="text-sm font-semibold text-red-600">No hay categorias creadas. Agrega una desde Configuraciones.</Text> : null}
+            {categories.length === 0 ? <Text className="text-sm font-semibold text-error">No hay categorias creadas. Agrega una desde Configuraciones.</Text> : null}
             {categories.map((item) => (
               <ChoicePill
                 key={item}
@@ -267,17 +267,17 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
         <Field label="Receta">
           <View className="gap-2">
             {inventoryItems.length === 0 ? (
-              <Text className="rounded-2xl bg-white p-4 text-sm font-semibold text-slate-500 dark:bg-slate-900">
+              <Text className="rounded-2xl bg-surface p-4 text-sm font-semibold text-muted ">
                 Registra insumos en Entrada de Insumos antes de asociar una receta.
               </Text>
             ) : null}
             {inventoryItems.map((item) => (
-              <View key={item.id} className="flex-row items-center gap-3 rounded-2xl bg-white p-3 dark:bg-slate-900">
+              <View key={item.id} className="flex-row items-center gap-3 rounded-2xl bg-surface p-3 ">
                 <View className="flex-1">
-                  <Text className="font-black text-slate-950 dark:text-white">{item.name}</Text>
-                  <Text className="text-xs font-semibold text-slate-500">Unidad: {item.unit}</Text>
+                  <Text className="font-black text-text ">{item.name}</Text>
+                  <Text className="text-xs font-semibold text-muted">Unidad: {item.unit}</Text>
                 </View>
-                <TextInput
+                <AppInput
                   value={recipeQuantities[item.id] ?? ""}
                   onChangeText={(value) =>
                     setRecipeQuantities((current) => ({
@@ -286,36 +286,21 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
                     }))
                   }
                   placeholder="0"
-                  placeholderTextColor="#94a3b8"
                   keyboardType="decimal-pad"
-                  className="w-24 rounded-xl bg-slate-100 px-3 py-3 text-center font-bold text-slate-950 dark:bg-slate-800 dark:text-white"
+                  accessibilityLabel={`Cantidad de ${item.name} en ${item.unit}`}
+                  className="w-24 rounded-xl bg-surfaceElevated px-3 py-3 text-center font-bold text-text "
                 />
               </View>
             ))}
           </View>
         </Field>
 
-        <Pressable
-          onPress={saveDish}
-          className="mt-2 rounded-2xl bg-amber-500 px-5 py-4 active:opacity-85"
-        >
-          <Text className="text-center text-base font-black text-white">
-            {saving ? "Guardando..." : isEdit ? "Guardar cambios" : "Guardar plato"}
-          </Text>
-        </Pressable>
-      </ScrollView>
+        <Button title={isEdit ? "Guardar cambios" : "Guardar plato"} loading={saving} disabled={formLoading} onPress={saveDish} />
+      </ScreenScroll>
     </SafeAreaView>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View className="gap-2">
-      <Text className="text-sm font-black text-slate-600 dark:text-slate-300">{label}</Text>
-      {children}
-    </View>
-  );
-}
 
 function ChoicePill({
   label,
@@ -328,11 +313,13 @@ function ChoicePill({
 }) {
   return (
     <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
       onPress={onPress}
-      className={`rounded-full px-4 py-3 ${selected ? "bg-slate-950" : "bg-white dark:bg-slate-900"}`}
+      className={`rounded-full px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
     >
       <Text
-        className={`text-sm font-black ${selected ? "text-white" : "text-slate-700 dark:text-slate-200"}`}
+        className={`text-sm font-black ${selected ? "text-onPrimary" : "text-text "}`}
       >
         {label}
       </Text>

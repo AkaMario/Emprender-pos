@@ -1,7 +1,12 @@
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { Button } from "@/components/ui/button";
+import { useFormProtection } from "@/hooks/use-form-protection";
+import { FieldGroup, AppInput } from "@/components/ui/form-input";
+import { LoadFeedback, useLoadFeedback } from "@/components/ui/load-feedback";
+import { AppAlert as Alert } from "@/components/ui/alerts";
+import { ScreenScroll } from "@/components/ui/screen-scroll";
+import { useLocalSearchParams } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/context/auth";
 import { useBusiness } from "@/context/business";
@@ -20,7 +25,6 @@ export default function SaleDetailScreen() {
 }
 
 function RestaurantSaleDetail() {
-  const router = useRouter();
   const { username } = useAuth();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const saleId = Number(id);
@@ -28,6 +32,7 @@ function RestaurantSaleDetail() {
   const [adminPassword, setAdminPassword] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const { dialog, markSaved } = useFormProtection([adminPassword, cancelReason], cancelling);
 
   const loadSale = useCallback(async () => {
     if (!saleId) {
@@ -37,14 +42,10 @@ function RestaurantSaleDetail() {
     setSale(await getSaleDetail(saleId));
   }, [saleId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadSale();
-    }, [loadSale])
-  );
+  const loadStatus = useLoadFeedback(loadSale);
 
   async function handleCancelSale() {
-    if (!sale || sale.status === "Cancelada") {
+    if (cancelling || !sale || sale.status === "Cancelada") {
       return;
     }
 
@@ -53,6 +54,13 @@ function RestaurantSaleDetail() {
       return;
     }
 
+    Alert.alert('Cancelar venta', 'Se restaurará el inventario y la venta quedará cancelada. ¿Continuar?', [
+      { text: 'Conservar venta', style: 'cancel' },
+      { text: 'Cancelar venta', style: 'destructive', onPress: performCancelSale },
+    ]);
+  }
+  async function performCancelSale() {
+    if (cancelling || !sale || !username) return;
     setCancelling(true);
     try {
       const admin = await getUserByCredentials(username, adminPassword);
@@ -62,6 +70,7 @@ function RestaurantSaleDetail() {
 
       await cancelSale(sale.id, cancelReason);
       Alert.alert("Venta cancelada", "El inventario fue restaurado y la venta quedo cancelada.");
+      markSaved(["", ""]);
       setAdminPassword("");
       setCancelReason("");
       await loadSale();
@@ -73,56 +82,51 @@ function RestaurantSaleDetail() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-black">
-      <View className="flex-row items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-        <Pressable onPress={() => router.back()} className="rounded-full p-2 active:bg-slate-200">
-          <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
-        </Pressable>
-        <Text className="text-xl font-black text-slate-950 dark:text-white">Detalle de venta</Text>
-      </View>
+    <SafeAreaView edges={[]} className="flex-1 bg-background ">
 
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-10">
-        {!sale ? (
-          <Text className="text-center text-sm font-semibold text-slate-500">Venta no encontrada.</Text>
-        ) : (
+
+      <ScreenScroll contentContainerClassName="gap-4 p-4 pb-10">{dialog}<LoadFeedback {...loadStatus} />
+        {!sale && !loadStatus.loading && !loadStatus.error ? (
+          <Text className="text-center text-sm font-semibold text-muted">Venta no encontrada.</Text>
+        ) : sale ? (
           <>
-            <View className="rounded-3xl bg-white p-5 dark:bg-slate-900">
+            <View className="rounded-3xl bg-surface p-5 ">
               <View className="flex-row items-center justify-between">
-                <Text className="text-sm font-bold uppercase tracking-wide text-slate-500">
+                <Text className="text-sm font-bold uppercase tracking-wide text-muted">
                   {sale.saleNumber}
                 </Text>
-                <View className={`rounded-full px-3 py-1 ${sale.status === "Completada" ? "bg-emerald-100" : "bg-red-100"}`}>
-                  <Text className={`text-xs font-black ${sale.status === "Completada" ? "text-emerald-700" : "text-red-700"}`}>
+                <View className={`rounded-full px-3 py-1 ${sale.status === "Completada" ? "bg-successContainer" : "bg-errorContainer"}`}>
+                  <Text className={`text-xs font-black ${sale.status === "Completada" ? "text-success" : "text-error"}`}>
                     {sale.status}
                   </Text>
                 </View>
               </View>
-              <Text className="mt-4 text-3xl font-black text-slate-950 dark:text-white">
+              <Text className="mt-4 text-3xl font-black text-text ">
                 {formatCurrency(sale.total)}
               </Text>
-              <Text className="mt-2 text-base font-semibold text-slate-500">
+              <Text className="mt-2 text-base font-semibold text-muted">
                 {sale.orderType} · {formatSaleTime(sale.createdAt)}
               </Text>
-              {sale.tableNumber ? <Text className="mt-1 text-sm font-semibold text-slate-500">Mesa {sale.tableNumber}</Text> : null}
-              {sale.customerName ? <Text className="mt-1 text-sm font-semibold text-slate-500">Cliente: {sale.customerName}</Text> : null}
+              {sale.tableNumber ? <Text className="mt-1 text-sm font-semibold text-muted">Mesa {sale.tableNumber}</Text> : null}
+              {sale.customerName ? <Text className="mt-1 text-sm font-semibold text-muted">Cliente: {sale.customerName}</Text> : null}
             </View>
 
             <View className="gap-3">
-              <Text className="text-xl font-black text-slate-950 dark:text-white">Items</Text>
+              <Text className="text-xl font-black text-text ">Items</Text>
               {sale.items.map((item) => (
-                <View key={item.id} className="rounded-2xl bg-white p-4 dark:bg-slate-900">
+                <View key={item.id} className="rounded-2xl bg-surface p-4 ">
                   <View className="flex-row items-center justify-between gap-3">
                     <View className="flex-1">
-                      <Text className="font-black text-slate-950 dark:text-white">{item.dishName}</Text>
-                      <Text className="text-sm font-semibold text-slate-500">x{item.quantity} · {formatCurrency(item.unitPrice)}</Text>
+                      <Text className="font-black text-text ">{item.dishName}</Text>
+                      <Text className="text-sm font-semibold text-muted">x{item.quantity} · {formatCurrency(item.unitPrice)}</Text>
                     </View>
-                    <Text className="font-black text-slate-950 dark:text-white">{formatCurrency(item.total)}</Text>
+                    <Text className="font-black text-text ">{formatCurrency(item.total)}</Text>
                   </View>
                 </View>
               ))}
             </View>
 
-            <View className="rounded-3xl bg-white p-5 dark:bg-slate-900">
+            <View className="rounded-3xl bg-surface p-5 ">
               <Row label="Subtotal" value={formatCurrency(sale.subtotal)} />
               <Row label="Domicilio" value={formatCurrency(sale.deliveryFee)} />
               <Row label="Pago" value={sale.paymentMethod ?? "-"} />
@@ -132,35 +136,33 @@ function RestaurantSaleDetail() {
             </View>
 
             {sale.status === "Completada" ? (
-              <View className="gap-3 rounded-3xl bg-white p-5 dark:bg-slate-900">
-                <Text className="text-lg font-black text-slate-950 dark:text-white">Cancelar venta</Text>
-                <TextInput
+              <View className="gap-3 rounded-3xl bg-surface p-5 ">
+                <Text className="text-lg font-black text-text ">Cancelar venta</Text>
+                <FieldGroup label="Contraseña del administrador *"><AppInput
+                  editable={!cancelling}
                   value={adminPassword}
                   onChangeText={setAdminPassword}
                   secureTextEntry
                   placeholder="Contrasena administrador"
-                  placeholderTextColor="#94a3b8"
-                  className="rounded-2xl bg-slate-100 px-4 py-4 text-base font-semibold text-slate-950 dark:bg-slate-800 dark:text-white"
+                  className="rounded-2xl bg-surfaceElevated px-4 py-4 text-base font-semibold text-text "
                 />
-                <TextInput
+                </FieldGroup><FieldGroup label="Motivo de cancelación *"><AppInput
+                  editable={!cancelling}
                   value={cancelReason}
                   onChangeText={setCancelReason}
                   placeholder="Motivo obligatorio"
-                  placeholderTextColor="#94a3b8"
-                  className="rounded-2xl bg-slate-100 px-4 py-4 text-base font-semibold text-slate-950 dark:bg-slate-800 dark:text-white"
+                  className="rounded-2xl bg-surfaceElevated px-4 py-4 text-base font-semibold text-text "
                 />
-                <Pressable disabled={cancelling} onPress={handleCancelSale} className="rounded-2xl bg-red-600 px-5 py-4">
-                  <Text className="text-center font-black text-white">{cancelling ? "Cancelando..." : "Cancelar venta"}</Text>
-                </Pressable>
+                </FieldGroup><Button title="Cancelar venta" variant="destructive" loading={cancelling} onPress={handleCancelSale} />
               </View>
             ) : sale.cancellationReason ? (
-              <View className="rounded-2xl bg-red-50 p-4">
-                <Text className="font-black text-red-700">Motivo: {sale.cancellationReason}</Text>
+              <View className="rounded-2xl bg-errorContainer p-4">
+                <Text className="font-black text-error">Motivo: {sale.cancellationReason}</Text>
               </View>
             ) : null}
           </>
-        )}
-      </ScrollView>
+        ) : null}
+      </ScreenScroll>
     </SafeAreaView>
   );
 }
@@ -168,8 +170,8 @@ function RestaurantSaleDetail() {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row items-center justify-between py-2">
-      <Text className="font-bold text-slate-500">{label}</Text>
-      <Text className="font-black text-slate-950 dark:text-white">{value}</Text>
+      <Text className="font-bold text-muted">{label}</Text>
+      <Text className="font-black text-text ">{value}</Text>
     </View>
   );
 }

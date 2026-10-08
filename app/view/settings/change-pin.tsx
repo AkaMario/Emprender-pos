@@ -1,3 +1,5 @@
+import { useFormProtection } from "@/hooks/use-form-protection";
+import { AppAlert as Alert } from "@/components/ui/alerts";
 import { PinSetupView } from "@/app/view/login/pin-setup";
 import { SecuritySetupView } from "@/app/view/login/security-setup";
 import { useAuth } from "@/context/auth";
@@ -8,7 +10,6 @@ import {
 } from "@/database/auth-database";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Alert } from "react-native";
 
 export default function ChangePinView() {
   const { username } = useAuth();
@@ -20,6 +21,7 @@ export default function ChangePinView() {
   const [error, setError] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [validating, setValidating] = React.useState(false);
+  const { dialog, markSaved } = useFormProtection([securityAnswer, newPin], saving || validating);
 
   React.useEffect(() => {
     let mounted = true;
@@ -44,6 +46,7 @@ export default function ChangePinView() {
   }, [username]);
 
   async function handleValidateSecurityAnswer() {
+    if (saving) return;
     if (!username) {
       return;
     }
@@ -74,6 +77,7 @@ export default function ChangePinView() {
   }
 
   async function handleSave() {
+    if (saving) return;
     if (!username) {
       return;
     }
@@ -88,8 +92,9 @@ export default function ChangePinView() {
 
     try {
       await updatePinWithSecurityAnswer(username, authenticatedAnswer, newPin);
+      markSaved();
       Alert.alert("Listo", "PIN actualizado.");
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace("/");
     } catch (currentError) {
       setError(currentError instanceof Error ? currentError.message : "No se pudo cambiar el PIN.");
     } finally {
@@ -98,8 +103,7 @@ export default function ChangePinView() {
   }
 
   if (!authenticatedAnswer) {
-    return (
-      <SecuritySetupView
+    return (<>{dialog}<SecuritySetupView
         buttonLabel="Validar respuesta"
         error={error}
         readOnlyQuestion
@@ -107,24 +111,22 @@ export default function ChangePinView() {
         securityQuestion={securityQuestion}
         submitting={validating}
         title="Cambiar PIN"
-        onBack={() => router.back()}
+        onBack={() => router.canGoBack() ? router.back() : router.replace("/")}
         onChangeSecurityAnswer={setSecurityAnswer}
         onChangeSecurityQuestion={() => null}
         onSubmit={handleValidateSecurityAnswer}
-      />
-    );
+      /></>);
   }
 
-  return (
-    <PinSetupView
+  return (<>{dialog}<PinSetupView
+      submitting={saving}
       error={error}
       pin={newPin}
-      onBack={() => router.back()}
+      onBack={() => router.canGoBack() ? router.back() : router.replace("/")}
       onChangePin={(value) => {
         setError("");
         setNewPin(value);
       }}
       onContinue={saving ? () => null : handleSave}
-    />
-  );
+    /></>);
 }

@@ -1,7 +1,8 @@
+import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import { SECURITY_QUESTIONS } from "@/context/auth";
 import { AuthShell, ErrorMessage, FieldLabel, FormInput, PrimaryButton } from "@/components/login/auth-ui";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from "expo-router";
 
@@ -20,7 +21,7 @@ type SecuritySetupViewProps = {
 };
 
 export function SecuritySetupView({
-  buttonLabel = "Continue",
+  buttonLabel = "Continuar",
   error,
   readOnlyQuestion = false,
   securityAnswer,
@@ -38,7 +39,7 @@ export function SecuritySetupView({
         <Ionicons
               name="arrow-back-outline"
               size={20}
-              className="text-black dark:text-white"
+              className="text-text "
             />
             {/* <Text
               className="text-lg font-bold text-center"
@@ -47,11 +48,11 @@ export function SecuritySetupView({
             </Text> */}
       </Pressable>
 
-      {title ? <Text className="mb-5 text-xl font-black text-slate-900">{title}</Text> : null}
+      {title ? <Text className="mb-5 text-xl font-black text-text ">{title}</Text> : null}
 
       <FieldLabel>Pregunta de seguridad</FieldLabel>
       {readOnlyQuestion ? (
-        <Text className="mb-4 rounded-md bg-green-50 px-3 py-2 text-xs font-semibold text-green-800">
+        <Text className="mb-4 rounded-md bg-primaryContainer px-3 py-2 text-xs font-semibold text-link">
           {securityQuestion || "No encontramos una pregunta de seguridad."}
         </Text>
       ) : (
@@ -62,10 +63,10 @@ export function SecuritySetupView({
             return (
               <Pressable
                 key={question}
-                className={`rounded-md border px-3 py-2 ${selected ? "border-green-700 bg-green-50" : "border-slate-200 bg-slate-100"}`}
+                className={`rounded-md border px-3 py-2 ${selected ? "border-primary bg-primaryContainer" : "border-separator bg-surfaceElevated"}`}
                 onPress={() => onChangeSecurityQuestion(question)}
               >
-                <Text className="text-xs text-slate-700">{question}</Text>
+                <Text className="text-xs text-text ">{question}</Text>
               </Pressable>
             );
           })}
@@ -73,7 +74,7 @@ export function SecuritySetupView({
       )}
 
       <FieldLabel>Respuesta</FieldLabel>
-      <FormInput placeholder="INPUT" value={securityAnswer} onChangeText={onChangeSecurityAnswer} />
+      <FormInput placeholder="Tu respuesta de seguridad" value={securityAnswer} onChangeText={onChangeSecurityAnswer} />
 
       <ErrorMessage message={error} />
       <PrimaryButton disabled={submitting} onPress={onSubmit}>

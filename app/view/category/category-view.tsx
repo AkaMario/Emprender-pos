@@ -1,7 +1,13 @@
+import { useDesignColors } from "@/constants/design";
+import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
+import { LoadFeedback, useLoadFeedback } from "@/components/ui/load-feedback";
+import { AppAlert as Alert } from "@/components/ui/alerts";
+import { Dialog } from "@/components/ui/dialog";
+import { Button, Field } from "@/components/business/ui";
+import { ScreenScroll } from "@/components/ui/screen-scroll";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   createInventoryCategory,
@@ -18,7 +24,7 @@ import {
 type CategoryKind = "product" | "inventory";
 
 export default function CategoryView() {
-  const router = useRouter();
+  const c = useDesignColors();
   const [kind, setKind] = useState<CategoryKind>("product");
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [name, setName] = useState("");
@@ -30,7 +36,7 @@ export default function CategoryView() {
     setCategories(kind === "product" ? await getProductCategories() : await getInventoryCategories());
   }, [kind]);
 
-  useFocusEffect(useCallback(() => { loadCategories(); }, [loadCategories]));
+  const loadStatus = useLoadFeedback(loadCategories);
 
   function openCreate() {
     setEditing(null);
@@ -45,6 +51,7 @@ export default function CategoryView() {
   }
 
   async function save() {
+    if (saving || !name.trim()) return;
     setSaving(true);
     try {
       if (kind === "product") {
@@ -83,40 +90,27 @@ export default function CategoryView() {
   const label = kind === "product" ? "producto" : "insumo";
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-black">
-      <View className="flex-row items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-        <Pressable onPress={() => router.back()} className="rounded-full p-2"><MaterialIcons name="close" size={28} color="#0f172a" /></Pressable>
-        <Text className="text-xl font-black text-slate-950 dark:text-white">Categorias</Text>
-      </View>
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-10">
-        <View className="flex-row gap-2 rounded-2xl bg-slate-200 p-1 dark:bg-slate-800">
-          <Pressable onPress={() => setKind("product")} className={`flex-1 rounded-xl px-3 py-3 ${kind === "product" ? "bg-white dark:bg-slate-700" : ""}`}><Text className="text-center font-black text-slate-800 dark:text-white">Productos</Text></Pressable>
-          <Pressable onPress={() => setKind("inventory")} className={`flex-1 rounded-xl px-3 py-3 ${kind === "inventory" ? "bg-white dark:bg-slate-700" : ""}`}><Text className="text-center font-black text-slate-800 dark:text-white">Insumos</Text></Pressable>
+    <SafeAreaView edges={[]} className="flex-1 bg-background ">
+
+      <ScreenScroll contentContainerClassName="gap-4 p-4 pb-10"><LoadFeedback {...loadStatus} />
+        <View className="flex-row gap-2 rounded-2xl bg-surfaceElevated p-1 ">
+          <Pressable accessibilityRole="radio" accessibilityState={{ checked: kind === "product" }} onPress={() => setKind("product")} className={`flex-1 rounded-xl px-3 py-3 ${kind === "product" ? "bg-primaryContainer" : ""}`}><Text className={`text-center font-black ${kind === "product" ? "text-link" : "text-text"}`}>{kind === "product" ? "✓ " : ""}Productos</Text></Pressable>
+          <Pressable accessibilityRole="radio" accessibilityState={{ checked: kind === "inventory" }} onPress={() => setKind("inventory")} className={`flex-1 rounded-xl px-3 py-3 ${kind === "inventory" ? "bg-primaryContainer" : ""}`}><Text className={`text-center font-black ${kind === "inventory" ? "text-link" : "text-text"}`}>{kind === "inventory" ? "✓ " : ""}Insumos</Text></Pressable>
         </View>
-        <Pressable onPress={openCreate} className="flex-row items-center justify-center gap-2 rounded-2xl bg-orange-700 px-5 py-4">
-          <MaterialIcons name="add" size={22} color="white" /><Text className="font-black text-white">Agregar categoria de {label}</Text>
-        </Pressable>
-        {categories.length === 0 ? <Text className="rounded-2xl bg-white p-5 text-center font-semibold text-slate-500 dark:bg-slate-900">Aun no hay categorias. Agrega la primera para crear {label}s.</Text> : null}
+        <Button title={`Agregar categoría de ${label}`} onPress={openCreate} icon={(color) => <MaterialIcons name="add" size={22} color={color} />} />
+        {categories.length === 0 ? <Text className="rounded-2xl bg-surface p-5 text-center font-semibold text-muted ">Aun no hay categorias. Agrega la primera para crear {label}s.</Text> : null}
         {categories.map((category) => (
-          <View key={category.id} className="flex-row items-center rounded-2xl bg-white p-4 dark:bg-slate-900">
-            <Text className="flex-1 text-base font-black text-slate-900 dark:text-white">{category.name}</Text>
-            <Pressable onPress={() => openEdit(category)} className="p-2"><MaterialIcons name="edit" size={21} color="#64748b" /></Pressable>
-            <Pressable onPress={() => confirmDelete(category)} className="p-2"><MaterialIcons name="delete-outline" size={22} color="#dc2626" /></Pressable>
+          <View key={category.id} className="flex-row items-center rounded-2xl bg-surface p-4 ">
+            <Text className="flex-1 text-base font-black text-text ">{category.name}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${category.name}`} style={{ minWidth: 48, minHeight: 48, justifyContent: "center", alignItems: "center" }} onPress={() => openEdit(category)} className="p-2"><MaterialIcons name="edit" size={21} color={c.icon} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Eliminar ${category.name}`} style={{ minWidth: 48, minHeight: 48, justifyContent: "center", alignItems: "center" }} onPress={() => confirmDelete(category)} className="p-2"><MaterialIcons name="delete-outline" size={22} color={c.error} /></Pressable>
           </View>
         ))}
-      </ScrollView>
-      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => { setName(""); setEditing(null); setModalVisible(false); }}>
-        <View className="flex-1 items-center justify-center bg-black/40 px-6">
-          <View className="w-full gap-4 rounded-3xl bg-white p-5 dark:bg-slate-900">
-            <Text className="text-xl font-black text-slate-950 dark:text-white">{editing ? "Editar categoria" : `Nueva categoria de ${label}`}</Text>
-            <TextInput autoFocus value={name} onChangeText={setName} placeholder="Nombre de la categoria" placeholderTextColor="#94a3b8" className="rounded-2xl bg-slate-100 px-4 py-4 text-base font-semibold text-slate-950 dark:bg-slate-800 dark:text-white" />
-            <View className="flex-row justify-end gap-3">
-              <Pressable onPress={() => { setName(""); setEditing(null); setModalVisible(false); }} className="rounded-xl px-4 py-3"><Text className="font-bold text-slate-500">Cancelar</Text></Pressable>
-              <Pressable disabled={saving} onPress={save} className="rounded-xl bg-orange-700 px-5 py-3"><Text className="font-bold text-white">{saving ? "Guardando..." : "Guardar"}</Text></Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      </ScreenScroll>
+      <Dialog visible={modalVisible} title={editing ? 'Editar categoría' : `Nueva categoría de ${label}`} busy={saving} dirty={name !== (editing?.name ?? '')} onClose={() => { setName(''); setEditing(null); setModalVisible(false); }}>
+        <Field label="Nombre de la categoría" required autoFocus value={name} onChangeText={setName} editable={!saving} />
+        <Button title="Guardar categoría" loading={saving} disabled={!name.trim()} onPress={save} />
+      </Dialog>
     </SafeAreaView>
   );
 }

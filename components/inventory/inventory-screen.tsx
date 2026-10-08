@@ -1,10 +1,17 @@
+import { colorContainer, useDesignColors } from "@/constants/design";
+import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
+import { AppAlert as Alert } from "@/components/ui/alerts";
+import { LoadFeedback, useLoadFeedback } from "@/components/ui/load-feedback";
+import { AppInput } from "@/components/ui/form-input";
+import { ScreenScroll } from "@/components/ui/screen-scroll";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Text, View } from "react-native";
 import { getInventoryCategories, getInventoryItems, type InventoryItem } from "@/database/pos-database";
 
 export function InventoryScreen() {
+  const c = useDesignColors();
   const router = useRouter();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [search, setSearch] = useState("");
@@ -17,34 +24,35 @@ export function InventoryScreen() {
     setItems(await getInventoryItems({ search, category, sortBy, criticalFirst }));
   }, [category, criticalFirst, search, sortBy]);
 
+  const loadStatus = useLoadFeedback(loadItems);
   useFocusEffect(
     useCallback(() => {
       getInventoryCategories().then((categories) => {
         const names = categories.map((item) => item.name);
         setFilters(["Todos", ...names]);
         setCategory((current) => current === "Todos" || names.includes(current) ? current : "Todos");
-      });
-      loadItems();
-    }, [loadItems])
+      }).catch((cause) => Alert.alert("No se pudieron cargar las categorías", cause instanceof Error ? cause.message : "Intenta nuevamente."));
+
+    }, [])
   );
 
   function statusColor(status: InventoryItem["status"]) {
     if (status === "Critico") {
-      return "#dc2626";
+      return c.error;
     }
     if (status === "Bajo") {
-      return "#d97706";
+      return c.warning;
     }
 
-    return "#16a34a";
+    return c.success;
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-slate-50 dark:bg-black"
+    <ScreenScroll
+      className="flex-1 bg-background "
       contentContainerClassName="gap-5 px-4 py-5 pb-10"
       showsVerticalScrollIndicator={false}
-    >
+    ><LoadFeedback {...loadStatus} />
 
       <View className="flex-row flex-wrap gap-3">
         <ActionButton label="Nuevo insumo" icon="add-box" onPress={() => router.push("/view/inventory/create" as any)} />
@@ -52,26 +60,25 @@ export function InventoryScreen() {
         <ActionButton label="Salida" icon="remove-shopping-cart" onPress={() => router.push("/view/dashboard/stock-out" as any)} />
       </View>
 
-      <View className="rounded-2xl bg-white p-3 dark:bg-slate-900">
-        <View className="flex-row items-center gap-2 rounded-xl bg-slate-100 px-3 dark:bg-slate-800">
-          <MaterialIcons name="search" size={22} color="#64748b" />
-          <TextInput
+      <View className="rounded-2xl bg-surface p-3 ">
+        <View className="flex-row items-center gap-2 rounded-xl bg-surfaceElevated px-3 ">
+          <MaterialIcons name="search" size={22} color={c.icon} />
+          <AppInput
             value={search}
             onChangeText={setSearch}
             placeholder="Buscar insumo"
-            placeholderTextColor="#94a3b8"
-            className="flex-1 py-3 text-base font-semibold text-slate-950 dark:text-white"
+            className="flex-1 py-3 text-base font-semibold text-text "
           />
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <ScreenScroll horizontal showsHorizontalScrollIndicator={false}>
         <View className="flex-row gap-2">
           {filters.map((item) => (
             <Pill key={item} label={item} selected={category === item} onPress={() => setCategory(item)} />
           ))}
         </View>
-      </ScrollView>
+      </ScreenScroll>
 
       <View className="flex-row flex-wrap gap-2">
         <Pill label="Orden: nombre" selected={sortBy === "name"} onPress={() => setSortBy("name")} />
@@ -81,7 +88,7 @@ export function InventoryScreen() {
 
       <View className="gap-3">
         {items.length === 0 ? (
-          <Text className="rounded-2xl bg-white p-5 text-center font-semibold text-slate-500 dark:bg-slate-900">
+          <Text className="rounded-2xl bg-surface p-5 text-center font-semibold text-muted ">
             No hay insumos registrados.
           </Text>
         ) : null}
@@ -94,20 +101,20 @@ export function InventoryScreen() {
               onPress={() =>
                 router.push({ pathname: "/view/inventory/history", params: { id: String(item.id) } } as any)
               }
-              className="rounded-3xl bg-white p-4 shadow-sm active:opacity-85 dark:bg-slate-900"
+              className="rounded-3xl bg-surface p-4 shadow-sm active:bg-surfaceElevated "
             >
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1">
-                  <Text className="text-lg font-black text-slate-950 dark:text-white">{item.name}</Text>
-                  <Text className="mt-1 text-sm font-semibold text-slate-500">
+                  <Text className="text-lg font-black text-text ">{item.name}</Text>
+                  <Text className="mt-1 text-sm font-semibold text-muted">
                     {item.category} · Min: {item.lowStockThreshold} {item.unit}
                   </Text>
                 </View>
                 <View className="items-end">
-                  <Text className="text-xl font-black text-slate-950 dark:text-white">
+                  <Text className="text-xl font-black text-text ">
                     {item.currentQuantity} {item.unit}
                   </Text>
-                  <View className="mt-2 rounded-full px-3 py-1" style={{ backgroundColor: `${color}20` }}>
+                  <View className="mt-2 rounded-full px-3 py-1" style={{ backgroundColor: colorContainer(c, color) }}>
                     <Text className="text-xs font-black" style={{ color }}>{item.status}</Text>
                   </View>
                 </View>
@@ -116,23 +123,24 @@ export function InventoryScreen() {
           );
         })}
       </View>
-    </ScrollView>
+    </ScreenScroll>
   );
 }
 
 function ActionButton({ label, icon, onPress }: { label: string; icon: string; onPress: () => void }) {
+  const c = useDesignColors();
   return (
-    <Pressable onPress={onPress} className="min-w-[30%] flex-1 rounded-2xl bg-orange-700 p-4 active:opacity-85">
-      <MaterialIcons name={icon as any} size={24} color="white" />
-      <Text className="mt-2 font-black text-white">{label}</Text>
+    <Pressable onPress={onPress} className="min-w-[30%] flex-1 rounded-2xl bg-primary p-4 active:bg-primaryPressed">
+      <MaterialIcons name={icon as any} size={24} color={c.onPrimary} />
+      <Text className="mt-2 font-black text-onPrimary">{label}</Text>
     </Pressable>
   );
 }
 
 function Pill({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className={`rounded-full px-4 py-3 ${selected ? "bg-slate-950" : "bg-white dark:bg-slate-900"}`}>
-      <Text className={`text-sm font-black ${selected ? "text-white" : "text-slate-700 dark:text-slate-200"}`}>{label}</Text>
+    <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={onPress} className={`rounded-full px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}>
+      <Text className={`text-sm font-black ${selected ? "text-onPrimary" : "text-text "}`}>{label}</Text>
     </Pressable>
   );
 }

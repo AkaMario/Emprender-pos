@@ -16,10 +16,10 @@ export function UsernameSetupView({
 }: UsernameSetupViewProps) {
   return (
     <AuthShell>
-      <FieldLabel>Username</FieldLabel>
-      <FormInput autoCapitalize="none" placeholder="Placeholder" value={username} onChangeText={onChangeUsername} />
+      <FieldLabel>Usuario</FieldLabel>
+      <FormInput autoCapitalize="none" placeholder="Elige un usuario" autoComplete="username" value={username} onChangeText={onChangeUsername} />
       <ErrorMessage message={error} />
-      <PrimaryButton onPress={onContinue}>Continue</PrimaryButton>
+      <PrimaryButton onPress={onContinue}>Continuar</PrimaryButton>
     </AuthShell>
   );
 }

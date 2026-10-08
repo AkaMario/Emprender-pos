@@ -1,26 +1,32 @@
+import { Button } from "@/components/ui/button";
+import { useDesignColors } from "@/constants/design";
+import { AppAlert as Alert } from "@/components/ui/alerts";
 import { getQrImageUri, saveQrImageUri } from "@/database/pos-database";
 import { Image } from "expo-image";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  Pressable,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SelectQr() {
-  const router = useRouter();
+  const c = useDesignColors();
+  const { width } = useWindowDimensions();
+  const [busy, setBusy] = useState(false);
   const [qrUri, setQrUri] = useState<string | null>(null);
 
   useEffect(() => {
-    getQrImageUri().then(setQrUri);
+    void getQrImageUri().then(setQrUri).catch((cause) => Alert.alert("No se pudo cargar el QR", cause instanceof Error ? cause.message : "Intenta nuevamente."));
   }, []);
 
   async function handlePickImage() {
+    if (busy) return;
+    setBusy(true);
+    try {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
@@ -32,6 +38,8 @@ export default function SelectQr() {
     const uri = result.assets[0].uri;
     await saveQrImageUri(uri);
     setQrUri(uri);
+    } catch (cause) { Alert.alert("No se pudo guardar el QR", cause instanceof Error ? cause.message : "Intenta nuevamente."); }
+    finally { setBusy(false); }
   }
 
   async function handleRemove() {
@@ -53,58 +61,36 @@ export default function SelectQr() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-black">
-      <View className="flex-row items-center gap-3 px-5 py-4">
-        <Pressable onPress={() => router.back()}>
-          <MaterialIcons name="close" size={28} color="#0f172a" />
-        </Pressable>
-        {/* <Text className="text-xl font-black text-slate-950 dark:text-white">
-          QR de transferencias
-        </Text> */}
-      </View>
+    <SafeAreaView edges={[]} className="flex-1 bg-surface ">
+
 
       <View className="flex-1 items-center justify-center gap-8 px-6">
         {qrUri ? (
           <View className="items-center gap-4">
-            <Text className="text-base font-bold text-slate-500">
+            <Text className="text-base font-bold text-muted">
               Imagen actual
             </Text>
             <View className="overflow-hidden rounded-3xl">
               <Image
                 source={{ uri: qrUri }}
-                style={{ width: 280, height: 280 }}
+                style={{ width: Math.min(280, width - 64), height: Math.min(280, width - 64) }}
                 contentFit="contain"
               />
             </View>
-            <Pressable
-              onPress={handleRemove}
-              className="flex-row items-center gap-2 rounded-2xl bg-red-50 px-6 py-3"
-            >
-              <MaterialIcons name="delete-outline" size={20} color="#dc2626" />
-              <Text className="font-bold text-red-600">
-                Eliminar imagen
-              </Text>
-            </Pressable>
+            <Button title="Eliminar imagen" variant="destructive" loading={busy} onPress={handleRemove} icon={(color) => <MaterialIcons name="delete-outline" size={20} color={color} />} />
           </View>
         ) : (
           <View className="items-center gap-4">
-            <View className="h-32 w-32 items-center justify-center rounded-full bg-slate-100">
-              <MaterialIcons name="qr-code" size={64} color="#94a3b8" />
+            <View className="h-32 w-32 items-center justify-center rounded-full bg-surfaceElevated">
+              <MaterialIcons name="qr-code" size={64} color={c.icon} />
             </View>
-            <Text className="text-center text-base font-semibold text-slate-500">
+            <Text className="text-center text-base font-semibold text-muted">
               No hay una imagen QR configurada
             </Text>
           </View>
         )}
 
-        <Pressable
-          onPress={handlePickImage}
-          className="rounded-2xl bg-orange-600 px-8 py-4 active:opacity-85"
-        >
-          <Text className="text-center text-base font-black text-white">
-            {qrUri ? "Cambiar imagen" : "Seleccionar imagen"}
-          </Text>
-        </Pressable>
+        <Button title={qrUri ? "Cambiar imagen" : "Seleccionar imagen"} loading={busy} onPress={handlePickImage} />
       </View>
     </SafeAreaView>
   );

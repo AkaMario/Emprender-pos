@@ -1,3 +1,4 @@
+import { useFormProtection } from "@/hooks/use-form-protection";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import * as Crypto from "expo-crypto";
@@ -21,6 +22,7 @@ export function BusinessPos() {
   const [cart, setCart] = useState<CartLine[]>([]); const [customer, setCustomer] = useState("");
   const [payment, setPayment] = useState<"Efectivo" | "Transferencia">("Efectivo"); const [received, setReceived] = useState("");
   const [saving, setSaving] = useState(false); const [customTare, setTare] = useState("0");
+  const { dialog, markSaved } = useFormProtection([cart, customer, received], saving);
   const operation = useRef(Crypto.randomUUID());
   const total = useMemo(() => cart.reduce((sum, line) => sum + line.total, 0), [cart]);
   const deposit = useMemo(() => cart.reduce((sum, line) => sum + line.deposit, 0), [cart]);
@@ -62,13 +64,14 @@ export function BusinessPos() {
     try {
       const id = await createBusinessSale({ operationKey: operation.current, customerName: customer, paymentMethod: payment,
         receivedMinor: moneyMinor(received || "0"), lines: cart.map((row) => row.input) });
+      markSaved([[], customer, ""]);
       setCart([]); setReceived(""); operation.current = Crypto.randomUUID();
       router.push({ pathname: "/view/dashboard/sale-detail", params: { id: String(id) } });
     } catch (cause) { setError(errorMessage(cause)); }
     finally { setSaving(false); }
   }
   const measured = profile?.model === "measured";
-  return <Page><Heading>{profile?.model === "rental" ? "Nueva reserva" : profile?.model === "services" ? "Nueva venta o cita" : "Nueva venta"}</Heading>
+  return <Page>{dialog}<Heading>{profile?.model === "rental" ? "Nueva reserva" : profile?.model === "services" ? "Nueva venta o cita" : "Nueva venta"}</Heading>
     <Field label="Cliente" placeholder={profile?.model === "rental" || profile?.model === "services" ? "Nombre obligatorio" : "Nombre opcional"} value={customer} onChangeText={setCustomer} editable={!saving} />
     <Field label="Buscar en el catálogo" value={search} onChangeText={setSearch} placeholder="Nombre, SKU o código de barras" editable={!saving} />
     {loading && <Copy>Cargando artículos…</Copy>}
