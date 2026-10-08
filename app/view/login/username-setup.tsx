@@ -1,4 +1,10 @@
-import { AuthShell, ErrorMessage, FieldLabel, FormInput, PrimaryButton } from "@/components/login/auth-ui";
+import {
+  AuthShell,
+  ErrorMessage,
+  FieldLabel,
+  FormInput,
+  PrimaryButton,
+} from "@/components/login/auth-ui";
 import React from "react";
 
 type UsernameSetupViewProps = {
@@ -17,7 +23,13 @@ export function UsernameSetupView({
   return (
     <AuthShell>
       <FieldLabel>Usuario</FieldLabel>
-      <FormInput autoCapitalize="none" placeholder="Elige un usuario" autoComplete="username" value={username} onChangeText={onChangeUsername} />
+      <FormInput
+        autoCapitalize="none"
+        placeholder="Elige un usuario"
+        autoComplete="username"
+        value={username}
+        onChangeText={onChangeUsername}
+      />
       <ErrorMessage message={error} />
       <PrimaryButton onPress={onContinue}>Continuar</PrimaryButton>
     </AuthShell>

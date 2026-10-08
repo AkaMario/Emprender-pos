@@ -76,7 +76,7 @@ export default function TabLayout() {
           options={{
             title: definition?.catalog,
             tabBarIcon: ({ color }) => (
-              <MaterialIcons name="restaurant-menu" size={24} color={color} />
+              <MaterialIcons name="category" size={24} color={color} />
             ),
           }}
         />
@@ -85,7 +85,7 @@ export default function TabLayout() {
           options={{
             title: "Ventas",
             tabBarIcon: ({ color }) => (
-              <MaterialIcons name="point-of-sale" size={24} color={color} />
+              <MaterialIcons name="receipt-long" size={24} color={color} />
             ),
           }}
         />

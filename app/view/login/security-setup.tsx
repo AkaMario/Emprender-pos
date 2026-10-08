@@ -1,9 +1,15 @@
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import { SECURITY_QUESTIONS } from "@/context/auth";
-import { AuthShell, ErrorMessage, FieldLabel, FormInput, PrimaryButton } from "@/components/login/auth-ui";
+import {
+  AuthShell,
+  ErrorMessage,
+  FieldLabel,
+  FormInput,
+  PrimaryButton,
+} from "@/components/login/auth-ui";
 import React from "react";
 import { Text, View } from "react-native";
-import Ionicons from '@expo/vector-icons/Ionicons';
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 
 type SecuritySetupViewProps = {
@@ -36,19 +42,17 @@ export function SecuritySetupView({
   return (
     <AuthShell>
       <Pressable className="mb-6" onPress={() => router.push("/settings")}>
-        <Ionicons
-              name="arrow-back-outline"
-              size={20}
-              className="text-text "
-            />
-            {/* <Text
+        <Ionicons name="arrow-back-outline" size={20} className="text-text " />
+        {/* <Text
               className="text-lg font-bold text-center"
             >
               Regresar
             </Text> */}
       </Pressable>
 
-      {title ? <Text className="mb-5 text-xl font-black text-text ">{title}</Text> : null}
+      {title ? (
+        <Text className="mb-5 text-xl font-black text-text ">{title}</Text>
+      ) : null}
 
       <FieldLabel>Pregunta de seguridad</FieldLabel>
       {readOnlyQuestion ? (
@@ -74,7 +78,11 @@ export function SecuritySetupView({
       )}
 
       <FieldLabel>Respuesta</FieldLabel>
-      <FormInput placeholder="Tu respuesta de seguridad" value={securityAnswer} onChangeText={onChangeSecurityAnswer} />
+      <FormInput
+        placeholder="Tu respuesta de seguridad"
+        value={securityAnswer}
+        onChangeText={onChangeSecurityAnswer}
+      />
 
       <ErrorMessage message={error} />
       <PrimaryButton disabled={submitting} onPress={onSubmit}>

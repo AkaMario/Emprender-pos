@@ -1,6 +1,12 @@
 import { useDesignColors } from "@/constants/design";
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
-import { AuthShell, ErrorMessage, FieldLabel, FormInput, PrimaryButton } from "@/components/login/auth-ui";
+import {
+  AuthShell,
+  ErrorMessage,
+  FieldLabel,
+  FormInput,
+  PrimaryButton,
+} from "@/components/login/auth-ui";
 import React from "react";
 import { Text, View } from "react-native";
 
@@ -33,12 +39,29 @@ export function ExistingLoginView({
   return (
     <AuthShell>
       <FieldLabel>Usuario</FieldLabel>
-      <FormInput autoCapitalize="none" placeholder="Tu usuario" autoComplete="username" value={username} onChangeText={onChangeUsername} />
+      <FormInput
+        autoCapitalize="none"
+        placeholder="Tu usuario"
+        autoComplete="username"
+        value={username}
+        onChangeText={onChangeUsername}
+      />
 
       <FieldLabel>Contraseña</FieldLabel>
-      <FormInput secureTextEntry placeholder="Tu contraseña" autoComplete="current-password" value={password} onChangeText={onChangePassword} />
+      <FormInput
+        secureTextEntry
+        placeholder="Tu contraseña"
+        autoComplete="current-password"
+        value={password}
+        onChangeText={onChangePassword}
+      />
 
-      <Pressable accessibilityRole="button" style={{ minHeight: 48, justifyContent: "center" }} className="mb-5" onPress={onForgotPassword}>
+      <Pressable
+        accessibilityRole="button"
+        style={{ minHeight: 48, justifyContent: "center" }}
+        className="mb-5"
+        onPress={onForgotPassword}
+      >
         <Text className="text-xs font-semibold" style={{ color: c.link }}>
           ¿Olvidaste tu contraseña?
         </Text>
@@ -53,7 +76,8 @@ export function ExistingLoginView({
         accessibilityRole="checkbox"
         accessibilityState={{ checked: rememberMe }}
         accessibilityLabel="Recordarme"
-        style={{ minHeight: 48 }} className="mt-4 flex-row items-center gap-2"
+        style={{ minHeight: 48 }}
+        className="mt-4 flex-row items-center gap-2"
         onPress={() => onChangeRememberMe(!rememberMe)}
       >
         <View className="h-3 w-3 items-center justify-center border border-primary">

@@ -27,7 +27,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [verifyPassword, setVerifyPassword] = useState("");
   const [pin, setPin] = useState("");
-  const [securityQuestion, setSecurityQuestion] = useState(SECURITY_QUESTIONS[0]);
+  const [securityQuestion, setSecurityQuestion] = useState(
+    SECURITY_QUESTIONS[0],
+  );
   const [securityAnswer, setSecurityAnswer] = useState("");
   const [resetSecurityQuestion, setResetSecurityQuestion] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
@@ -60,7 +62,11 @@ export default function LoginScreen() {
       await login(username.trim(), password, rememberMe);
       router.replace("/");
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : "No se pudo iniciar sesion.");
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo iniciar sesion.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -92,7 +98,10 @@ export default function LoginScreen() {
     setSubmitting(true);
 
     try {
-      const isValid = await verifySecurityAnswer(username.trim(), securityAnswer);
+      const isValid = await verifySecurityAnswer(
+        username.trim(),
+        securityAnswer,
+      );
 
       if (!isValid) {
         setError("Respuesta de seguridad incorrecta.");
@@ -103,7 +112,11 @@ export default function LoginScreen() {
       setVerifyPassword("");
       setLoginMode("resetPassword");
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : "No se pudo validar la respuesta.");
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo validar la respuesta.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -126,7 +139,11 @@ export default function LoginScreen() {
     setSubmitting(true);
 
     try {
-      await updatePasswordWithSecurityAnswer(username.trim(), securityAnswer, password);
+      await updatePasswordWithSecurityAnswer(
+        username.trim(),
+        securityAnswer,
+        password,
+      );
       setLoginMode("login");
       setPassword("");
       setVerifyPassword("");
@@ -134,7 +151,11 @@ export default function LoginScreen() {
       setSecurityAnswer("");
       setError("");
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : "No se pudo cambiar la contrasena.");
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo cambiar la contrasena.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -193,7 +214,11 @@ export default function LoginScreen() {
       });
       router.replace("/");
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : "No se pudo completar el registro.");
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo completar el registro.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -292,7 +317,7 @@ export default function LoginScreen() {
   if (step === "password") {
     return (
       <PasswordSetupView
-          submitting={submitting}
+        submitting={submitting}
         error={error}
         password={password}
         verifyPassword={verifyPassword}

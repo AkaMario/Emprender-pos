@@ -15,11 +15,7 @@ import { useRouter } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
 import * as Sharing from "expo-sharing";
 import React from "react";
-import {
-  Platform,
-  Text,
-  View,
-} from "react-native";
+import { Platform, Text, View } from "react-native";
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -144,23 +140,24 @@ export default function Settings() {
       contentContainerClassName="px-6 py-5"
     >
       <View className="gap-10">
-        
         <View className="gap-2 rounded-2xl bg-surfaceElevated p-4 ">
           <Text className="text-xl font-bold text-text ">{profile?.name}</Text>
           <Text className="text-base text-text ">{definition?.title}</Text>
         </View>
 
         <View className="flex flex-col gap-10 justify-center items-start">
-          {isRestaurant && <Pressable
-            onPress={() => router.push("/view/category/category-view" as any)}
-            className="flex-row items-center justify-start gap-4"
-          >
-            <MaterialIcons name="category" size={24} color={c.icon} />
+          {isRestaurant && (
+            <Pressable
+              onPress={() => router.push("/view/category/category-view" as any)}
+              className="flex-row items-center justify-start gap-4"
+            >
+              <MaterialIcons name="category" size={24} color={c.icon} />
 
-            <Text className="text-lg font-bold text-text">
-              Categorias de productos e insumos
-            </Text>
-          </Pressable>}
+              <Text className="text-lg font-bold text-text">
+                Categorias de productos e insumos
+              </Text>
+            </Pressable>
+          )}
 
           <Pressable
             onPress={() => router.push("/view/qr/select-qr" as any)}
@@ -250,7 +247,6 @@ export default function Settings() {
               {loggingOut ? "Cerrando sesion..." : "Cerrar sesion"}
             </Text>
           </Pressable>
-          
         </View>
       </View>
     </ScreenScroll>

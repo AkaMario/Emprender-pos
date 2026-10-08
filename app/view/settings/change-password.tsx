@@ -26,7 +26,10 @@ export default function ChangePasswordView() {
   const [verifyPassword, setVerifyPassword] = React.useState("");
   const [error, setError] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const { dialog, markSaved } = useFormProtection([securityAnswer, newPassword, verifyPassword], submitting);
+  const { dialog, markSaved } = useFormProtection(
+    [securityAnswer, newPassword, verifyPassword],
+    submitting,
+  );
 
   React.useEffect(() => {
     let mounted = true;
@@ -39,7 +42,9 @@ export default function ChangePasswordView() {
       const question = await getSecurityQuestionByUsername(username);
 
       if (mounted) {
-        setSecurityQuestion(question ?? "No encontramos una pregunta de seguridad.");
+        setSecurityQuestion(
+          question ?? "No encontramos una pregunta de seguridad.",
+        );
       }
     }
 
@@ -92,7 +97,11 @@ export default function ChangePasswordView() {
 
       setStep("password");
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : "No se pudo validar la respuesta.");
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo validar la respuesta.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -118,59 +127,86 @@ export default function ChangePasswordView() {
     setSubmitting(true);
 
     try {
-      await updatePasswordWithRecovery(username, authenticatedPin, securityAnswer, newPassword);
+      await updatePasswordWithRecovery(
+        username,
+        authenticatedPin,
+        securityAnswer,
+        newPassword,
+      );
       markSaved();
       Alert.alert("Listo", "Contraseña actualizada.");
-      if (router.canGoBack()) router.back(); else router.replace("/");
+      if (router.canGoBack()) router.back();
+      else router.replace("/");
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : "No se pudo cambiar la contraseña.");
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo cambiar la contraseña.",
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
   if (step === "pin") {
-    return (<>{dialog}<PinAuthView
-        title="Ingresa tu PIN"
-        description="Valida tu PIN para cambiar la contraseña."
-        onBack={() => router.canGoBack() ? router.back() : router.replace("/")}
-        onValidate={handleValidatePin}
-      /></>);
+    return (
+      <>
+        {dialog}
+        <PinAuthView
+          title="Ingresa tu PIN"
+          description="Valida tu PIN para cambiar la contraseña."
+          onBack={() =>
+            router.canGoBack() ? router.back() : router.replace("/")
+          }
+          onValidate={handleValidatePin}
+        />
+      </>
+    );
   }
 
   if (step === "security") {
-    return (<>{dialog}<SecuritySetupView
-        buttonLabel="Validar respuesta"
-        error={error}
-        readOnlyQuestion
-        securityAnswer={securityAnswer}
-        securityQuestion={securityQuestion}
-        submitting={submitting}
-        title="Cambiar contraseña"
-        onBack={() => {
-          setError("");
-          setAuthenticatedPin("");
-          setStep("pin");
-        }}
-        onChangeSecurityAnswer={setSecurityAnswer}
-        onChangeSecurityQuestion={() => null}
-        onSubmit={handleValidateSecurityAnswer}
-      /></>);
+    return (
+      <>
+        {dialog}
+        <SecuritySetupView
+          buttonLabel="Validar respuesta"
+          error={error}
+          readOnlyQuestion
+          securityAnswer={securityAnswer}
+          securityQuestion={securityQuestion}
+          submitting={submitting}
+          title="Cambiar contraseña"
+          onBack={() => {
+            setError("");
+            setAuthenticatedPin("");
+            setStep("pin");
+          }}
+          onChangeSecurityAnswer={setSecurityAnswer}
+          onChangeSecurityQuestion={() => null}
+          onSubmit={handleValidateSecurityAnswer}
+        />
+      </>
+    );
   }
 
-  return (<>{dialog}<PasswordSetupView
-          submitting={submitting}
-      buttonLabel={submitting ? "Guardando..." : "Guardar contraseña"}
-      error={error}
-      password={newPassword}
-      title="Nueva contraseña"
-      verifyPassword={verifyPassword}
-      onBack={() => {
-        setError("");
-        setStep("security");
-      }}
-      onChangePassword={setNewPassword}
-      onChangeVerifyPassword={setVerifyPassword}
-      onContinue={handleSavePassword}
-    /></>);
+  return (
+    <>
+      {dialog}
+      <PasswordSetupView
+        submitting={submitting}
+        buttonLabel={submitting ? "Guardando..." : "Guardar contraseña"}
+        error={error}
+        password={newPassword}
+        title="Nueva contraseña"
+        verifyPassword={verifyPassword}
+        onBack={() => {
+          setError("");
+          setStep("security");
+        }}
+        onChangePassword={setNewPassword}
+        onChangeVerifyPassword={setVerifyPassword}
+        onContinue={handleSavePassword}
+      />
+    </>
+  );
 }

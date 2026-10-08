@@ -21,7 +21,10 @@ export default function ChangePinView() {
   const [error, setError] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [validating, setValidating] = React.useState(false);
-  const { dialog, markSaved } = useFormProtection([securityAnswer, newPin], saving || validating);
+  const { dialog, markSaved } = useFormProtection(
+    [securityAnswer, newPin],
+    saving || validating,
+  );
 
   React.useEffect(() => {
     let mounted = true;
@@ -34,7 +37,9 @@ export default function ChangePinView() {
       const question = await getSecurityQuestionByUsername(username);
 
       if (mounted) {
-        setSecurityQuestion(question ?? "No encontramos una pregunta de seguridad.");
+        setSecurityQuestion(
+          question ?? "No encontramos una pregunta de seguridad.",
+        );
       }
     }
 
@@ -70,7 +75,11 @@ export default function ChangePinView() {
       setAuthenticatedAnswer(securityAnswer);
       setError("");
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : "No se pudo validar la respuesta.");
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo validar la respuesta.",
+      );
     } finally {
       setValidating(false);
     }
@@ -94,39 +103,58 @@ export default function ChangePinView() {
       await updatePinWithSecurityAnswer(username, authenticatedAnswer, newPin);
       markSaved();
       Alert.alert("Listo", "PIN actualizado.");
-      if (router.canGoBack()) router.back(); else router.replace("/");
+      if (router.canGoBack()) router.back();
+      else router.replace("/");
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : "No se pudo cambiar el PIN.");
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo cambiar el PIN.",
+      );
     } finally {
       setSaving(false);
     }
   }
 
   if (!authenticatedAnswer) {
-    return (<>{dialog}<SecuritySetupView
-        buttonLabel="Validar respuesta"
-        error={error}
-        readOnlyQuestion
-        securityAnswer={securityAnswer}
-        securityQuestion={securityQuestion}
-        submitting={validating}
-        title="Cambiar PIN"
-        onBack={() => router.canGoBack() ? router.back() : router.replace("/")}
-        onChangeSecurityAnswer={setSecurityAnswer}
-        onChangeSecurityQuestion={() => null}
-        onSubmit={handleValidateSecurityAnswer}
-      /></>);
+    return (
+      <>
+        {dialog}
+        <SecuritySetupView
+          buttonLabel="Validar respuesta"
+          error={error}
+          readOnlyQuestion
+          securityAnswer={securityAnswer}
+          securityQuestion={securityQuestion}
+          submitting={validating}
+          title="Cambiar PIN"
+          onBack={() =>
+            router.canGoBack() ? router.back() : router.replace("/")
+          }
+          onChangeSecurityAnswer={setSecurityAnswer}
+          onChangeSecurityQuestion={() => null}
+          onSubmit={handleValidateSecurityAnswer}
+        />
+      </>
+    );
   }
 
-  return (<>{dialog}<PinSetupView
-      submitting={saving}
-      error={error}
-      pin={newPin}
-      onBack={() => router.canGoBack() ? router.back() : router.replace("/")}
-      onChangePin={(value) => {
-        setError("");
-        setNewPin(value);
-      }}
-      onContinue={saving ? () => null : handleSave}
-    /></>);
+  return (
+    <>
+      {dialog}
+      <PinSetupView
+        submitting={saving}
+        error={error}
+        pin={newPin}
+        onBack={() =>
+          router.canGoBack() ? router.back() : router.replace("/")
+        }
+        onChangePin={(value) => {
+          setError("");
+          setNewPin(value);
+        }}
+        onContinue={saving ? () => null : handleSave}
+      />
+    </>
+  );
 }

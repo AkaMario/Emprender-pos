@@ -5,5 +5,11 @@ import { BusinessOperations } from "@/components/business/operations";
 
 export default function Inventory() {
   const { isRestaurant, profile } = useBusiness();
-  return isRestaurant ? <InventoryScreen /> : profile?.model === "services" ? <BusinessOperations /> : <BusinessCatalog inventory />;
+  return isRestaurant ? (
+    <InventoryScreen />
+  ) : profile?.model === "services" ? (
+    <BusinessOperations />
+  ) : (
+    <BusinessCatalog inventory />
+  );
 }

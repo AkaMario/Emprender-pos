@@ -1,5 +1,11 @@
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
-import { AuthShell, ErrorMessage, FieldLabel, FormInput, PrimaryButton } from "@/components/login/auth-ui";
+import {
+  AuthShell,
+  ErrorMessage,
+  FieldLabel,
+  FormInput,
+  PrimaryButton,
+} from "@/components/login/auth-ui";
 import React from "react";
 import { Text } from "react-native";
 
@@ -30,20 +36,42 @@ export function PasswordSetupView({
 }: PasswordSetupViewProps) {
   return (
     <AuthShell>
-      <Pressable accessibilityRole="button" accessibilityLabel="Regresar al paso anterior" style={{ minHeight: 48, minWidth: 48, justifyContent: "center" }} className="mb-6" onPress={onBack}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Regresar al paso anterior"
+        style={{ minHeight: 48, minWidth: 48, justifyContent: "center" }}
+        className="mb-6"
+        onPress={onBack}
+      >
         <Text className="text-2xl text-text ">‹</Text>
       </Pressable>
 
-      {title ? <Text className="mb-5 text-xl font-black text-text ">{title}</Text> : null}
+      {title ? (
+        <Text className="mb-5 text-xl font-black text-text ">{title}</Text>
+      ) : null}
 
       <FieldLabel>Nueva contraseña</FieldLabel>
-      <FormInput autoComplete="new-password" secureTextEntry placeholder="**************" value={password} onChangeText={onChangePassword} />
+      <FormInput
+        autoComplete="new-password"
+        secureTextEntry
+        placeholder="**************"
+        value={password}
+        onChangeText={onChangePassword}
+      />
 
       <FieldLabel>Confirmar contraseña</FieldLabel>
-      <FormInput autoComplete="new-password" secureTextEntry placeholder="**************" value={verifyPassword} onChangeText={onChangeVerifyPassword} />
+      <FormInput
+        autoComplete="new-password"
+        secureTextEntry
+        placeholder="**************"
+        value={verifyPassword}
+        onChangeText={onChangeVerifyPassword}
+      />
 
       <ErrorMessage message={error} />
-      <PrimaryButton disabled={submitting} onPress={onContinue}>{buttonLabel}</PrimaryButton>
+      <PrimaryButton disabled={submitting} onPress={onContinue}>
+        {buttonLabel}
+      </PrimaryButton>
     </AuthShell>
   );
 }

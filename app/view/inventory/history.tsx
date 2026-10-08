@@ -60,31 +60,56 @@ export default function InventoryHistory() {
 
   return (
     <SafeAreaView edges={[]} className="flex-1 bg-background ">
-
-
-      <ScreenScroll contentContainerClassName="gap-4 p-4 pb-10"><LoadFeedback {...loadStatus} />
+      <ScreenScroll contentContainerClassName="gap-4 p-4 pb-10">
+        <LoadFeedback {...loadStatus} />
         <View className="rounded-3xl bg-surface p-5 ">
-          <Text className="text-sm font-black uppercase tracking-wide text-muted">Balance actual</Text>
-          <Text className="mt-2 text-3xl font-black text-text ">{item?.name ?? "Insumo"}</Text>
+          <Text className="text-sm font-black uppercase tracking-wide text-muted">
+            Balance actual
+          </Text>
+          <Text className="mt-2 text-3xl font-black text-text ">
+            {item?.name ?? "Insumo"}
+          </Text>
           <Text className="mt-2 text-xl font-black text-link">
             {item ? `${item.currentQuantity} ${item.unit}` : "-"}
           </Text>
-          {item ? <Text className="mt-1 text-sm font-semibold text-muted">Minimo: {item.lowStockThreshold} {item.unit} · {item.status}</Text> : null}
+          {item ? (
+            <Text className="mt-1 text-sm font-semibold text-muted">
+              Minimo: {item.lowStockThreshold} {item.unit} · {item.status}
+            </Text>
+          ) : null}
         </View>
 
         <ScreenScroll horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
             {movementTypes.map((value) => (
-              <Pressable key={value} onPress={() => setType(value)} className={`rounded-full px-4 py-3 ${type === value ? "bg-primary" : "bg-surface "}`}>
-                <Text className={`text-sm font-black ${type === value ? "text-onPrimary" : "text-text "}`}>{movementLabel(value)}</Text>
+              <Pressable
+                key={value}
+                onPress={() => setType(value)}
+                className={`rounded-full px-4 py-3 ${type === value ? "bg-primary" : "bg-surface "}`}
+              >
+                <Text
+                  className={`text-sm font-black ${type === value ? "text-onPrimary" : "text-text "}`}
+                >
+                  {movementLabel(value)}
+                </Text>
               </Pressable>
             ))}
           </View>
         </ScreenScroll>
 
         <View className="flex-row gap-3">
-          <AppInput value={startDate} onChangeText={setStartDate} placeholder="Desde YYYY-MM-DD" className="flex-1 rounded-2xl bg-surface px-4 py-4 font-semibold text-text " />
-          <AppInput value={endDate} onChangeText={setEndDate} placeholder="Hasta YYYY-MM-DD" className="flex-1 rounded-2xl bg-surface px-4 py-4 font-semibold text-text " />
+          <AppInput
+            value={startDate}
+            onChangeText={setStartDate}
+            placeholder="Desde YYYY-MM-DD"
+            className="flex-1 rounded-2xl bg-surface px-4 py-4 font-semibold text-text "
+          />
+          <AppInput
+            value={endDate}
+            onChangeText={setEndDate}
+            placeholder="Hasta YYYY-MM-DD"
+            className="flex-1 rounded-2xl bg-surface px-4 py-4 font-semibold text-text "
+          />
         </View>
 
         <View className="gap-3">
@@ -100,18 +125,46 @@ export default function InventoryHistory() {
               <View key={movement.id} className="rounded-2xl bg-surface p-4 ">
                 <View className="flex-row items-start justify-between gap-3">
                   <View className="flex-1">
-                    <Text className="font-black text-text ">{movementLabel(movement.type)}</Text>
-                    <Text className="mt-1 text-sm font-semibold text-muted">
-                      {new Date(movement.createdAt).toISOString().slice(0, 10)} · {formatSaleTime(movement.createdAt)}
+                    <Text className="font-black text-text ">
+                      {movementLabel(movement.type)}
                     </Text>
-                    {movement.reason ? <Text className="mt-1 text-sm font-semibold text-muted">Motivo: {movement.reason}</Text> : null}
-                    {movement.supplier ? <Text className="mt-1 text-sm font-semibold text-muted">Proveedor: {movement.supplier}</Text> : null}
-                    {movement.invoiceNumber ? <Text className="mt-1 text-sm font-semibold text-muted">Comprobante: {movement.invoiceNumber}</Text> : null}
-                    {movement.unitCost ? <Text className="mt-1 text-sm font-semibold text-muted">Costo unitario: {formatCurrency(movement.unitCost)}</Text> : null}
-                    {movement.notes ? <Text className="mt-1 text-sm font-semibold text-muted">Obs: {movement.notes}</Text> : null}
+                    <Text className="mt-1 text-sm font-semibold text-muted">
+                      {new Date(movement.createdAt).toISOString().slice(0, 10)}{" "}
+                      · {formatSaleTime(movement.createdAt)}
+                    </Text>
+                    {movement.reason ? (
+                      <Text className="mt-1 text-sm font-semibold text-muted">
+                        Motivo: {movement.reason}
+                      </Text>
+                    ) : null}
+                    {movement.supplier ? (
+                      <Text className="mt-1 text-sm font-semibold text-muted">
+                        Proveedor: {movement.supplier}
+                      </Text>
+                    ) : null}
+                    {movement.invoiceNumber ? (
+                      <Text className="mt-1 text-sm font-semibold text-muted">
+                        Comprobante: {movement.invoiceNumber}
+                      </Text>
+                    ) : null}
+                    {movement.unitCost ? (
+                      <Text className="mt-1 text-sm font-semibold text-muted">
+                        Costo unitario: {formatCurrency(movement.unitCost)}
+                      </Text>
+                    ) : null}
+                    {movement.notes ? (
+                      <Text className="mt-1 text-sm font-semibold text-muted">
+                        Obs: {movement.notes}
+                      </Text>
+                    ) : null}
                   </View>
-                  <View className="rounded-full px-3 py-1" style={{ backgroundColor: colorContainer(c, color) }}>
-                    <Text className="font-black" style={{ color }}>{movement.quantity}</Text>
+                  <View
+                    className="rounded-full px-3 py-1"
+                    style={{ backgroundColor: colorContainer(c, color) }}
+                  >
+                    <Text className="font-black" style={{ color }}>
+                      {movement.quantity}
+                    </Text>
                   </View>
                 </View>
               </View>
