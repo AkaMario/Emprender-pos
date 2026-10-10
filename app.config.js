@@ -1,7 +1,7 @@
-const base = require('./app.json').expo;
+const defaultConfig = require('./app.json').expo;
 const palette = require('./constants/color-tokens.json');
 
-module.exports = () => ({
+module.exports = ({ config: base = defaultConfig } = {}) => ({
   ...base,
   backgroundColor: palette.light.background,
   userInterfaceStyle: 'automatic',
