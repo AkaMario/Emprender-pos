@@ -82,8 +82,8 @@ export function MenuScreen() {
 
         <Button title="Crear nuevo plato" onPress={() => router.push("/view/menu/create" as any)} icon={(color) => <MaterialIcons name="add-circle-outline" size={20} color={color} />} />
 
-        <View className="rounded-2xl bg-surface p-3 ">
-          <View className="flex-row items-center gap-2 rounded-xl bg-surfaceElevated px-3 ">
+        <View className="rounded-none bg-surface p-3 ">
+          <View className="flex-row items-center gap-2 rounded-none bg-surfaceElevated px-3 ">
             <MaterialIcons name="search" size={22} color={c.icon} />
             <AppInput
               value={search}
@@ -103,10 +103,10 @@ export function MenuScreen() {
                 <Pressable
                   key={category}
                   onPress={() => setSelectedCategory(category)}
-                  className={`rounded-full px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
+                  className={`rounded-none px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
                 >
                   <Text
-                    className={`text-sm font-black ${selected ? "text-onPrimary" : "text-text "}`}
+                    className={`text-sm font-semibold ${selected ? "text-onPrimary" : "text-text "}`}
                   >
                     {category}
                   </Text>
@@ -134,16 +134,13 @@ export function MenuScreen() {
                   params: { id: String(dish.id) },
                 } as any)
               }
-              className="rounded-3xl bg-surface p-4 shadow-sm active:bg-surfaceElevated "
+              className="rounded-none bg-surface p-4  active:bg-surfaceElevated "
             >
               <View className="flex-row gap-4">
-                <View className="h-20 w-20 items-center justify-center rounded-2xl bg-surfaceElevated">
-                  <MaterialIcons name="local-bar" size={34} color={c.icon} />
-                </View>
                 <View className="flex-1">
                   <View className="flex-row items-start justify-between gap-3">
                     <View className="flex-1">
-                      <Text className="text-lg font-black text-text ">
+                      <Text className="text-lg font-semibold text-text ">
                         {dish.name}
                       </Text>
                       <Text className="mt-1 text-sm font-semibold text-muted">
@@ -151,22 +148,24 @@ export function MenuScreen() {
                       </Text>
                     </View>
                     <Pressable accessibilityLabel={`Eliminar ${dish.name}`} onPress={(event) => { event.stopPropagation(); confirmDelete(dish); }} className="p-1">
-                      <MaterialIcons name="more-vert" size={22} color={c.icon} />
+                      <Text className="text-sm font-semibold text-error">Eliminar</Text>
                     </Pressable>
                   </View>
 
                   <View className="mt-3 flex-row flex-wrap items-center gap-2">
-                    <Text className="rounded-full bg-surfaceElevated px-3 py-1 text-xs font-black text-text">
+                    <Text className="rounded-none bg-surfaceElevated px-3 py-1 text-xs font-semibold text-text">
                       {formatCurrency(dish.price)}
                     </Text>
-                    <Text className="rounded-full bg-surfaceElevated px-3 py-1 text-xs font-black text-text">
-                      {dish.size}
-                    </Text>
+                    {dish.size ? (
+                      <Text className="rounded-none bg-surfaceElevated px-3 py-1 text-xs font-semibold text-text">
+                        {dish.size}
+                      </Text>
+                    ) : null}
                     <View
-                      className="rounded-full px-3 py-1"
+                      className="rounded-none px-3 py-1"
                       style={{ backgroundColor: colorContainer(c, color) }}
                     >
-                      <Text className="text-xs font-black" style={{ color }}>
+                      <Text className="text-xs font-semibold" style={{ color }}>
                         {dish.stockStatus}
                       </Text>
                     </View>

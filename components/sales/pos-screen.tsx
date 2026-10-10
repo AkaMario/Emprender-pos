@@ -262,7 +262,7 @@ export function PosScreen() {
       </Section>
 
       <Section title="Agregar platos">
-        <View className="flex-row items-center gap-2 rounded-2xl bg-surface px-3 ">
+        <View className="flex-row items-center gap-2 rounded-none bg-surface px-3 ">
           <MaterialIcons name="search" size={22} color={c.icon} />
           <AppInput
             value={search}
@@ -276,21 +276,18 @@ export function PosScreen() {
             key={dish.id}
             disabled={dish.stockStatus === "Sin Stock"}
             onPress={() => addDish(dish)}
-            className="flex-row items-center gap-3 rounded-2xl bg-surface p-3 active:bg-surfaceElevated "
+            className="flex-row items-center gap-3 rounded-none bg-surface p-3 active:bg-surfaceElevated "
             style={{ opacity: dish.stockStatus === "Sin Stock" ? 0.5 : 1 }}
           >
-            <View className="h-12 w-12 items-center justify-center rounded-xl bg-primaryContainer">
-              <MaterialIcons name="local-bar" size={24} color={c.primary} />
-            </View>
             <View className="flex-1">
-              <Text className="font-black text-text ">
+              <Text className="font-semibold text-text ">
                 {dish.name}
               </Text>
               <Text className="text-xs font-bold text-muted">
-                {dish.size} · {dish.stockStatus}
+                {[dish.size, dish.stockStatus].filter(Boolean).join(" · ")}
               </Text>
             </View>
-            <Text className="font-black text-text ">
+            <Text className="font-semibold text-text ">
               {formatCurrency(dish.price)}
             </Text>
           </Pressable>
@@ -306,11 +303,11 @@ export function PosScreen() {
         {cart.map((item) => (
           <View
             key={item.dish.id}
-            className="rounded-2xl bg-surface p-3 "
+            className="rounded-none bg-surface p-3 "
           >
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1">
-                <Text className="font-black text-text ">
+                <Text className="font-semibold text-text ">
                   {item.dish.name}
                 </Text>
                 <Text className="text-sm font-bold text-muted">
@@ -322,18 +319,18 @@ export function PosScreen() {
                   accessibilityLabel={`Reducir cantidad de ${item.dish.name}`}
                   disabled={saving}
                   onPress={() => updateQuantity(item.dish.id, -1)}
-                  className="rounded-full bg-surfaceElevated p-2"
+                  className="rounded-none bg-surfaceElevated p-2"
                 >
                   <MaterialIcons name="remove" size={18} color={c.text} />
                 </Pressable>
-                <Text className="w-6 text-center font-black text-text ">
+                <Text className="w-6 text-center font-semibold text-text ">
                   {item.quantity}
                 </Text>
                 <Pressable
                   accessibilityLabel={`Aumentar cantidad de ${item.dish.name}`}
                   disabled={saving}
                   onPress={() => updateQuantity(item.dish.id, 1)}
-                  className="rounded-full bg-surfaceElevated p-2"
+                  className="rounded-none bg-surfaceElevated p-2"
                 >
                   <MaterialIcons name="add" size={18} color={c.text} />
                 </Pressable>
@@ -341,7 +338,7 @@ export function PosScreen() {
                   accessibilityLabel={`Quitar ${item.dish.name} del carrito`}
                   disabled={saving}
                   onPress={() => removeItem(item.dish.id)}
-                  className="rounded-full bg-errorContainer p-2"
+                  className="rounded-none bg-errorContainer p-2"
                 >
                   <MaterialIcons
                     name="delete-outline"
@@ -379,7 +376,7 @@ export function PosScreen() {
           <View className="gap-4">
             {transferQrUri ? (
               <View className="items-center gap-2">
-                <View className="overflow-hidden rounded-2xl">
+                <View className="overflow-hidden rounded-none">
                   <Image
                     source={{ uri: transferQrUri }}
                     style={{ width: 400, height: 400 }}
@@ -402,7 +399,7 @@ export function PosScreen() {
         )}
       </Section>
 
-      <View className="rounded-3xl bg-surface p-5 ">
+      <View className="rounded-none bg-surface p-5 ">
         <TotalRow label="Subtotal" value={formatCurrency(subtotal)} />
         <TotalRow label="Domicilio" value={formatCurrency(deliveryFee)} />
         <TotalRow label="Total" value={formatCurrency(total)} strong />
@@ -428,7 +425,7 @@ function Section({
 }) {
   return (
     <View className="gap-3">
-      <Text className="text-xl font-black text-text ">
+      <Text className="text-xl font-semibold text-text ">
         {title}
       </Text>
       {children}
@@ -450,10 +447,10 @@ function Choice({
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
       onPress={onPress}
-      className={`rounded-full px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
+      className={`rounded-none px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
     >
       <Text
-        className={`text-sm font-black ${selected ? "text-onPrimary" : "text-text "}`}
+        className={`text-sm font-semibold ${selected ? "text-onPrimary" : "text-text "}`}
       >
         {label}
       </Text>
@@ -464,7 +461,7 @@ function Choice({
 function Input(props: React.ComponentProps<typeof AppInput>) {
   return (
     <AutoField
-      className="rounded-2xl bg-surface px-4 py-4 text-base font-semibold text-text "
+      className="rounded-none bg-surface px-4 py-4 text-base font-semibold text-text "
       {...props}
     />
   );
@@ -487,7 +484,7 @@ function TotalRow({
         {label}
       </Text>
       <Text
-        className={`${strong ? "text-2xl" : "text-base"} font-black text-text `}
+        className={`${strong ? "text-2xl" : "text-base"} font-semibold text-text `}
       >
         {value}
       </Text>

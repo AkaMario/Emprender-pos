@@ -1,4 +1,3 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
 import React from 'react';
 import { Text, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,8 +9,7 @@ import { metrics, useDesignColors } from '@/constants/design';
 export function BrandLogo() {
   const c = useDesignColors();
   return <View accessibilityLabel="Emprender" style={{ alignItems: 'center', gap: 12 }}>
-    <View style={{ backgroundColor: c.primaryContainer, borderRadius: 20, width: 72, height: 72, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="storefront-outline" size={36} color={c.primary} /></View>
-    <Text style={{ fontSize: 28, fontWeight: '700', color: c.text }}>Emprender</Text>
+    <Text style={{ fontSize: 32, fontWeight: '700', letterSpacing: -1, color: c.text }}>Emprender</Text>
   </View>;
 }
 export function FieldLabel({ children }: { children: React.ReactNode }) { const c = useDesignColors(); return <Text style={{ marginBottom: 8, fontSize: 14, fontWeight: '600', color: c.text }}>{children}</Text>; }

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { colorContainer, useDesignColors } from "@/constants/design";
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import { AppAlert as Alert } from "@/components/ui/alerts";
@@ -55,13 +56,13 @@ export function InventoryScreen() {
     ><LoadFeedback {...loadStatus} />
 
       <View className="flex-row flex-wrap gap-3">
-        <ActionButton label="Nuevo insumo" icon="add-box" onPress={() => router.push("/view/inventory/create" as any)} />
-        <ActionButton label="Entrada" icon="inventory" onPress={() => router.push("/view/dashboard/supply-entry" as any)} />
-        <ActionButton label="Salida" icon="remove-shopping-cart" onPress={() => router.push("/view/dashboard/stock-out" as any)} />
+        <ActionButton label="Nuevo insumo" onPress={() => router.push("/view/inventory/create" as any)} />
+        <ActionButton label="Entrada" onPress={() => router.push("/view/dashboard/supply-entry" as any)} />
+        <ActionButton label="Salida" onPress={() => router.push("/view/dashboard/stock-out" as any)} />
       </View>
 
-      <View className="rounded-2xl bg-surface p-3 ">
-        <View className="flex-row items-center gap-2 rounded-xl bg-surfaceElevated px-3 ">
+      <View className="rounded-none bg-surface p-3 ">
+        <View className="flex-row items-center gap-2 rounded-none bg-surfaceElevated px-3 ">
           <MaterialIcons name="search" size={22} color={c.icon} />
           <AppInput
             value={search}
@@ -88,7 +89,7 @@ export function InventoryScreen() {
 
       <View className="gap-3">
         {items.length === 0 ? (
-          <Text className="rounded-2xl bg-surface p-5 text-center font-semibold text-muted ">
+          <Text className="rounded-none bg-surface p-5 text-center font-semibold text-muted ">
             No hay insumos registrados.
           </Text>
         ) : null}
@@ -101,21 +102,21 @@ export function InventoryScreen() {
               onPress={() =>
                 router.push({ pathname: "/view/inventory/history", params: { id: String(item.id) } } as any)
               }
-              className="rounded-3xl bg-surface p-4 shadow-sm active:bg-surfaceElevated "
+              className="rounded-none bg-surface p-4  active:bg-surfaceElevated "
             >
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1">
-                  <Text className="text-lg font-black text-text ">{item.name}</Text>
+                  <Text className="text-lg font-semibold text-text ">{item.name}</Text>
                   <Text className="mt-1 text-sm font-semibold text-muted">
                     {item.category} · Min: {item.lowStockThreshold} {item.unit}
                   </Text>
                 </View>
                 <View className="items-end">
-                  <Text className="text-xl font-black text-text ">
+                  <Text className="text-xl font-semibold text-text ">
                     {item.currentQuantity} {item.unit}
                   </Text>
-                  <View className="mt-2 rounded-full px-3 py-1" style={{ backgroundColor: colorContainer(c, color) }}>
-                    <Text className="text-xs font-black" style={{ color }}>{item.status}</Text>
+                  <View className="mt-2 rounded-none px-3 py-1" style={{ backgroundColor: colorContainer(c, color) }}>
+                    <Text className="text-xs font-semibold" style={{ color }}>{item.status}</Text>
                   </View>
                 </View>
               </View>
@@ -127,20 +128,14 @@ export function InventoryScreen() {
   );
 }
 
-function ActionButton({ label, icon, onPress }: { label: string; icon: string; onPress: () => void }) {
-  const c = useDesignColors();
-  return (
-    <Pressable onPress={onPress} className="min-w-[30%] flex-1 rounded-2xl bg-primary p-4 active:bg-primaryPressed">
-      <MaterialIcons name={icon as any} size={24} color={c.onPrimary} />
-      <Text className="mt-2 font-black text-onPrimary">{label}</Text>
-    </Pressable>
-  );
+function ActionButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return <View className="min-w-[30%] flex-1"><Button title={label} secondary onPress={onPress} /></View>;
 }
 
 function Pill({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={onPress} className={`rounded-full px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}>
-      <Text className={`text-sm font-black ${selected ? "text-onPrimary" : "text-text "}`}>{label}</Text>
+    <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={onPress} className={`rounded-none px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}>
+      <Text className={`text-sm font-semibold ${selected ? "text-onPrimary" : "text-text "}`}>{label}</Text>
     </Pressable>
   );
 }

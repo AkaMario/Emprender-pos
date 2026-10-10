@@ -109,15 +109,15 @@ export default function CategoryView() {
     <SafeAreaView edges={[]} className="flex-1 bg-background ">
       <ScreenScroll contentContainerClassName="gap-4 p-4 pb-10">
         <LoadFeedback {...loadStatus} />
-        <View className="flex-row gap-2 rounded-2xl bg-surfaceElevated p-1 ">
+        <View className="flex-row gap-2 rounded-none bg-surfaceElevated p-1 ">
           <Pressable
             accessibilityRole="radio"
             accessibilityState={{ checked: kind === "product" }}
             onPress={() => setKind("product")}
-            className={`flex-1 rounded-xl px-3 py-3 ${kind === "product" ? "bg-primaryContainer" : ""}`}
+            className={`flex-1 rounded-none px-3 py-3 ${kind === "product" ? "bg-primaryContainer" : ""}`}
           >
             <Text
-              className={`text-center font-black ${kind === "product" ? "text-link" : "text-text"}`}
+              className={`text-center font-semibold ${kind === "product" ? "text-link" : "text-text"}`}
             >
               {kind === "product" ? "✓ " : ""}Productos
             </Text>
@@ -126,10 +126,10 @@ export default function CategoryView() {
             accessibilityRole="radio"
             accessibilityState={{ checked: kind === "inventory" }}
             onPress={() => setKind("inventory")}
-            className={`flex-1 rounded-xl px-3 py-3 ${kind === "inventory" ? "bg-primaryContainer" : ""}`}
+            className={`flex-1 rounded-none px-3 py-3 ${kind === "inventory" ? "bg-primaryContainer" : ""}`}
           >
             <Text
-              className={`text-center font-black ${kind === "inventory" ? "text-link" : "text-text"}`}
+              className={`text-center font-semibold ${kind === "inventory" ? "text-link" : "text-text"}`}
             >
               {kind === "inventory" ? "✓ " : ""}Insumos
             </Text>
@@ -141,16 +141,16 @@ export default function CategoryView() {
           icon={(color) => <MaterialIcons name="add" size={22} color={color} />}
         />
         {categories.length === 0 ? (
-          <Text className="rounded-2xl bg-surface p-5 text-center font-semibold text-muted ">
+          <Text className="rounded-none bg-surface p-5 text-center font-semibold text-muted ">
             Aun no hay categorias. Agrega la primera para crear {label}s.
           </Text>
         ) : null}
         {categories.map((category) => (
           <View
             key={category.id}
-            className="flex-row items-center rounded-2xl bg-surface p-4 "
+            className="flex-row items-center rounded-none bg-surface p-4 "
           >
-            <Text className="flex-1 text-base font-black text-text ">
+            <Text className="flex-1 text-base font-semibold text-text ">
               {category.name}
             </Text>
             <Pressable

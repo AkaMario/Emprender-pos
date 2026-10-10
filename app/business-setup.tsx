@@ -1,9 +1,7 @@
-import { useDesignColors } from "@/constants/design";
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, View } from "react-native";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useBusiness } from "@/context/business";
 import { useAuth } from "@/context/auth";
 import { BUSINESS_MODELS, type BusinessModel } from "@/domain/business";
@@ -20,7 +18,6 @@ import {
 } from "@/components/business/ui";
 
 export default function BusinessSetup() {
-  const c = useDesignColors();
   const { choose } = useBusiness();
   const { logout } = useAuth();
   const [name, setName] = useState("");
@@ -95,20 +92,15 @@ export default function BusinessSetup() {
               accessibilityState={{ selected, disabled }}
               disabled={disabled}
               onPress={() => setModel(key)}
-              className={`gap-2 rounded-2xl border-2 p-4 ${selected ? "border-primary bg-primaryContainer " : "border-separator bg-surface "}`}
+              className={`gap-2 rounded-none border-2 p-4 ${selected ? "border-border bg-primaryContainer " : "border-separator bg-surface "}`}
               style={{ opacity: disabled ? 0.5 : 1 }}
             >
               <View className="flex-row items-center gap-3">
-                <MaterialIcons name={option.icon} size={26} color={c.primary} />
                 <Text className="flex-1 text-lg font-bold text-text ">
                   {option.title}
                 </Text>
                 {selected && (
-                  <MaterialIcons
-                    name="check-circle"
-                    size={24}
-                    color={c.primary}
-                  />
+                  <Text className="text-sm font-semibold text-text">Elegido</Text>
                 )}
               </View>
               <Copy>{option.description}</Copy>

@@ -72,14 +72,14 @@ export default function DashboardAlerts() {
           const color = alertColor(alert.type);
 
           return (
-            <View key={alert.id} className="rounded-2xl bg-surface p-4 ">
+            <View key={alert.id} className="rounded-none bg-surface p-4 ">
               <View className="flex-row items-start gap-3">
                 <View
-                  className="mt-1 h-3 w-3 rounded-full"
+                  className="mt-1 h-3 w-3 rounded-none"
                   style={{ backgroundColor: color }}
                 />
                 <View className="flex-1">
-                  <Text className="text-base font-black text-text ">
+                  <Text className="text-base font-semibold text-text ">
                     {alert.type}
                     {alert.isRead ? " · Leída" : ""}
                   </Text>
@@ -95,9 +95,9 @@ export default function DashboardAlerts() {
                     {alert.type.includes("Stock") ? (
                       <Pressable
                         onPress={() => handleReorder(alert.id)}
-                        className="rounded-full bg-primaryContainer px-3 py-2 active:bg-surfaceElevated"
+                        className="rounded-none bg-primaryContainer px-3 py-2 active:bg-surfaceElevated"
                       >
-                        <Text className="text-xs font-black text-link">
+                        <Text className="text-xs font-semibold text-link">
                           {alert.status === "En proceso"
                             ? "En proceso"
                             : "Reordenar"}
@@ -106,9 +106,9 @@ export default function DashboardAlerts() {
                     ) : null}
                     <Pressable
                       onPress={() => handleRead(alert.id)}
-                      className="rounded-full bg-surfaceElevated px-3 py-2 active:bg-surfaceElevated "
+                      className="rounded-none bg-surfaceElevated px-3 py-2 active:bg-surfaceElevated "
                     >
-                      <Text className="text-xs font-black text-text ">
+                      <Text className="text-xs font-semibold text-text ">
                         Leida
                       </Text>
                     </Pressable>

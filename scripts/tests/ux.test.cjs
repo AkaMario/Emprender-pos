@@ -81,7 +81,7 @@ test('fields expose their label and error; pending buttons expose disabled and b
   assert.equal(input.value, 'incorrecto'); assert.equal(input.accessibilityLabel, 'Precio en COP'); assert.equal(input.accessibilityHint, 'Ingresa un precio válido.'); assert.ok(input.style[0].minHeight >= 48);
   assert.ok(f.nodes.some((node) => node.accessibilityRole === 'alert'));
   f.render(Button, { title: 'Guardar', loading: true, onPress() {} });
-  const button = f.nodes.find((node) => node.type === 'Pressable'); assert.equal(button.disabled, true); assert.deepEqual(button.accessibilityState, { disabled: true, busy: true }); assert.ok(button.style({ pressed: false }).minHeight >= 48);
+  const button = f.nodes.find((node) => node.type === 'Pressable'); assert.equal(button.disabled, true); assert.deepEqual(button.accessibilityState, { disabled: true, busy: true }); assert.ok(button.style.minHeight >= 48);
 });
 
 test('closing a destructive confirmation cancels; repeated activation executes once', async () => {
@@ -153,8 +153,9 @@ test('native controls render the current system theme after a change and a remou
     mode = nextMode; const c = palette[mode];
     f.render(Button, { title: 'Guardar', onPress() {} });
     const button = f.nodes.find((node) => node.type === 'Pressable');
-    assert.equal(button.style({ pressed: false }).backgroundColor, c.primary);
-    assert.equal(button.style({ pressed: true }).backgroundColor, c.primaryPressed);
+    assert.equal(button.style.backgroundColor, c.primary);
+    assert.equal(typeof button.onPressIn, 'function');
+    assert.equal(typeof button.onPressOut, 'function');
     assert.equal(f.nodes.find((node) => node.type === 'Text').style.color, c.onPrimary);
     f.render(Field, { label: 'Cliente', value: '' });
     const field = f.nodes.find((node) => node.type === 'TextInput'); assert.equal(field.style[0].backgroundColor, c.surface); assert.equal(field.placeholderTextColor, c.muted);
@@ -168,7 +169,7 @@ test('Tailwind emits semantic colors and automatic CSS themes from the shared pa
   const config = require(path.join(root, 'tailwind.config.js')); const colors = require(path.join(root, 'constants/color-tokens.json'));
   const content = Object.keys(colors.light).flatMap((token) => [`bg-${token}`, `text-${token}`, `border-${token}`]).join(' ');
   const result = await postcss([tailwind({ ...config, content: [{ raw: content }] })]).process('@tailwind base; @tailwind utilities;', { from: undefined });
-  const css = result.css; assert.match(css, /prefers-color-scheme: dark/); assert.match(css, /--theme-background: #0b1220/); assert.match(css, /--theme-background: #f8fafc/);
+  const css = result.css; assert.match(css, /prefers-color-scheme: dark/); assert.ok(css.includes(`--theme-background: ${colors.dark.background}`)); assert.ok(css.includes(`--theme-background: ${colors.light.background}`));
   for (const token of Object.keys(colors.light)) {
     assert.ok(css.includes(`.bg-${token}`), `Missing utility bg-${token}`); assert.ok(css.includes(`--color-${token}`), `Missing channel variable for ${token}`);
   }
@@ -231,12 +232,14 @@ test('all button variants keep label, icon and spinner colors aligned in both th
         assert.equal(label.style.color, colors.foreground);
         assert.equal(control.disabled, Boolean(state.disabled || state.loading));
         assert.equal(control.accessibilityState.busy, Boolean(state.loading));
-        for (const pressed of [false, true]) {
-          const actual = control.style({ pressed });
-          assert.equal(actual.backgroundColor, buttonColors(palette[mode], variant, { ...state, pressed }).background);
-          assert.equal(actual.opacity, 1);
-          if (['primary', 'secondary', 'destructive'].includes(variant)) assert.notEqual(actual.backgroundColor, 'transparent');
-        }
+        // A concrete style survives NativeWind interop; a callback can be dropped,
+        // leaving white primary labels over the page background on Android.
+        assert.equal(typeof control.style, 'object');
+        assert.equal(control.style.backgroundColor, colors.background);
+        assert.equal(control.style.opacity, 1);
+        assert.equal(control.style.borderRadius, 0);
+        if (['primary', 'secondary', 'destructive'].includes(variant)) assert.notEqual(control.style.backgroundColor, 'transparent');
+        if (variant === 'secondary') assert.equal(control.style.borderWidth, 1);
         if (state.loading) assert.equal(f.nodes.find((node) => node.type === 'ActivityIndicator').color, label.style.color);
         else assert.equal(iconColor, label.style.color);
         if (state.selected) assert.equal(control.accessibilityState.selected, true);

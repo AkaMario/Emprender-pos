@@ -3,7 +3,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import colorTokens from './color-tokens.json';
 
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 };
-export const radii = { control: 12, card: 16, dialog: 24 };
+export const radii = { control: 0, card: 0, dialog: 0 };
 export const metrics = { touch: 48, content: 960, form: 560 };
 export const palette = colorTokens;
 export type DesignColors = typeof palette.light;

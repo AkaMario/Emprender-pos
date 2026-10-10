@@ -38,8 +38,8 @@ export default function TabLayout() {
           headerShown: false,
           tabBarHideOnKeyboard: true,
           tabBarButton: HapticTab,
-          tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.separator },
-          tabBarLabelStyle: { fontSize: 12 },
+          tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.separator, elevation: 0 },
+          tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
           tabBarActiveTintColor: c.primary,
           tabBarInactiveTintColor: c.icon,
         }}

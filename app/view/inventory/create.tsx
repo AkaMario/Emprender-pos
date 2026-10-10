@@ -180,7 +180,7 @@ export default function CreateInventoryItem() {
 function Input(props: React.ComponentProps<typeof AppInput>) {
   return (
     <AppInput
-      className="rounded-2xl bg-surface px-4 py-4 text-base font-semibold text-text "
+      className="rounded-none bg-surface px-4 py-4 text-base font-semibold text-text "
       {...props}
     />
   );
@@ -198,10 +198,10 @@ function Pill({
   return (
     <Pressable
       onPress={onPress}
-      className={`rounded-full px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
+      className={`rounded-none px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
     >
       <Text
-        className={`text-sm font-black ${selected ? "text-onPrimary" : "text-text "}`}
+        className={`text-sm font-semibold ${selected ? "text-onPrimary" : "text-text "}`}
       >
         {label}
       </Text>

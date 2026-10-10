@@ -73,7 +73,7 @@ export default function SelectQr() {
             <Text className="text-base font-bold text-muted">
               Imagen actual
             </Text>
-            <View className="overflow-hidden rounded-3xl">
+            <View className="overflow-hidden rounded-none">
               <Image
                 source={{ uri: qrUri }}
                 style={{
@@ -95,7 +95,7 @@ export default function SelectQr() {
           </View>
         ) : (
           <View className="items-center gap-4">
-            <View className="h-32 w-32 items-center justify-center rounded-full bg-surfaceElevated">
+            <View className="h-32 w-32 items-center justify-center rounded-none bg-surfaceElevated">
               <MaterialIcons name="qr-code" size={64} color={c.icon} />
             </View>
             <Text className="text-center text-base font-semibold text-muted">

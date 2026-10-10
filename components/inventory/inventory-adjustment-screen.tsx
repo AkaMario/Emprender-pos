@@ -98,15 +98,15 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
 
         {items.length > 0 ? (
           <View className="gap-2">
-            <Text className="text-sm font-black text-muted ">Insumo</Text>
+            <Text className="text-sm font-semibold text-muted ">Insumo</Text>
             {items.map((item) => (
               <Pressable
                 key={item.id}
                 onPress={() => setSelectedItemId(item.id)}
-                className={`rounded-2xl p-4 ${selectedItemId === item.id ? "bg-primary" : "bg-surface "}`}
+                className={`rounded-none p-4 ${selectedItemId === item.id ? "bg-primary" : "bg-surface "}`}
               >
                 <View className="flex-row items-center justify-between gap-3">
-                  <Text className={`font-black ${selectedItemId === item.id ? "text-onPrimary" : "text-text "}`}>
+                  <Text className={`font-semibold ${selectedItemId === item.id ? "text-onPrimary" : "text-text "}`}>
                     {item.name}
                   </Text>
                   <Text className={`font-bold ${selectedItemId === item.id ? "text-onPrimary" : "text-muted"}`}>
@@ -119,7 +119,7 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
         ) : null}
 
         {items.length === 0 ? (
-          <Text className="rounded-2xl bg-surface p-4 text-center font-semibold text-muted ">
+          <Text className="rounded-none bg-surface p-4 text-center font-semibold text-muted ">
             Primero registra insumos en el modulo Inventario.
           </Text>
         ) : null}
@@ -142,8 +142,8 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
           <>
             <View className="flex-row flex-wrap gap-2">
               {["Merma", "Daño", "Ajuste", "Caducado", "Otro"].map((item) => (
-                <Pressable key={item} onPress={() => setReason(item)} className={`rounded-full px-4 py-3 ${reason === item ? "bg-primary" : "bg-surface "}`}>
-                  <Text className={`text-sm font-black ${reason === item ? "text-onPrimary" : "text-text "}`}>{item}</Text>
+                <Pressable key={item} onPress={() => setReason(item)} className={`rounded-none px-4 py-3 ${reason === item ? "bg-primary" : "bg-surface "}`}>
+                  <Text className={`text-sm font-semibold ${reason === item ? "text-onPrimary" : "text-text "}`}>{item}</Text>
                 </Pressable>
               ))}
             </View>
@@ -160,7 +160,7 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
 function Input(props: React.ComponentProps<typeof AppInput>) {
   return (
     <AutoField
-      className="rounded-2xl bg-surface px-4 py-4 text-base font-semibold text-text "
+      className="rounded-none bg-surface px-4 py-4 text-base font-semibold text-text "
       {...props}
     />
   );

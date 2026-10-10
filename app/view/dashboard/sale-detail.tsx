@@ -116,22 +116,22 @@ function RestaurantSaleDetail() {
           </Text>
         ) : sale ? (
           <>
-            <View className="rounded-3xl bg-surface p-5 ">
+            <View className="rounded-none bg-surface p-5 ">
               <View className="flex-row items-center justify-between">
                 <Text className="text-sm font-bold uppercase tracking-wide text-muted">
                   {sale.saleNumber}
                 </Text>
                 <View
-                  className={`rounded-full px-3 py-1 ${sale.status === "Completada" ? "bg-successContainer" : "bg-errorContainer"}`}
+                  className={`rounded-none px-3 py-1 ${sale.status === "Completada" ? "bg-successContainer" : "bg-errorContainer"}`}
                 >
                   <Text
-                    className={`text-xs font-black ${sale.status === "Completada" ? "text-success" : "text-error"}`}
+                    className={`text-xs font-semibold ${sale.status === "Completada" ? "text-success" : "text-error"}`}
                   >
                     {sale.status}
                   </Text>
                 </View>
               </View>
-              <Text className="mt-4 text-3xl font-black text-text ">
+              <Text className="mt-4 text-3xl font-semibold text-text ">
                 {formatCurrency(sale.total)}
               </Text>
               <Text className="mt-2 text-base font-semibold text-muted">
@@ -150,19 +150,19 @@ function RestaurantSaleDetail() {
             </View>
 
             <View className="gap-3">
-              <Text className="text-xl font-black text-text ">Items</Text>
+              <Text className="text-xl font-semibold text-text ">Items</Text>
               {sale.items.map((item) => (
-                <View key={item.id} className="rounded-2xl bg-surface p-4 ">
+                <View key={item.id} className="rounded-none bg-surface p-4 ">
                   <View className="flex-row items-center justify-between gap-3">
                     <View className="flex-1">
-                      <Text className="font-black text-text ">
+                      <Text className="font-semibold text-text ">
                         {item.dishName}
                       </Text>
                       <Text className="text-sm font-semibold text-muted">
                         x{item.quantity} · {formatCurrency(item.unitPrice)}
                       </Text>
                     </View>
-                    <Text className="font-black text-text ">
+                    <Text className="font-semibold text-text ">
                       {formatCurrency(item.total)}
                     </Text>
                   </View>
@@ -170,7 +170,7 @@ function RestaurantSaleDetail() {
               ))}
             </View>
 
-            <View className="rounded-3xl bg-surface p-5 ">
+            <View className="rounded-none bg-surface p-5 ">
               <Row label="Subtotal" value={formatCurrency(sale.subtotal)} />
               <Row label="Domicilio" value={formatCurrency(sale.deliveryFee)} />
               <Row label="Pago" value={sale.paymentMethod ?? "-"} />
@@ -189,8 +189,8 @@ function RestaurantSaleDetail() {
             </View>
 
             {sale.status === "Completada" ? (
-              <View className="gap-3 rounded-3xl bg-surface p-5 ">
-                <Text className="text-lg font-black text-text ">
+              <View className="gap-3 rounded-none bg-surface p-5 ">
+                <Text className="text-lg font-semibold text-text ">
                   Cancelar venta
                 </Text>
                 <FieldGroup label="Contraseña del administrador *">
@@ -200,7 +200,7 @@ function RestaurantSaleDetail() {
                     onChangeText={setAdminPassword}
                     secureTextEntry
                     placeholder="Contrasena administrador"
-                    className="rounded-2xl bg-surfaceElevated px-4 py-4 text-base font-semibold text-text "
+                    className="rounded-none bg-surfaceElevated px-4 py-4 text-base font-semibold text-text "
                   />
                 </FieldGroup>
                 <FieldGroup label="Motivo de cancelación *">
@@ -209,7 +209,7 @@ function RestaurantSaleDetail() {
                     value={cancelReason}
                     onChangeText={setCancelReason}
                     placeholder="Motivo obligatorio"
-                    className="rounded-2xl bg-surfaceElevated px-4 py-4 text-base font-semibold text-text "
+                    className="rounded-none bg-surfaceElevated px-4 py-4 text-base font-semibold text-text "
                   />
                 </FieldGroup>
                 <Button
@@ -220,8 +220,8 @@ function RestaurantSaleDetail() {
                 />
               </View>
             ) : sale.cancellationReason ? (
-              <View className="rounded-2xl bg-errorContainer p-4">
-                <Text className="font-black text-error">
+              <View className="rounded-none bg-errorContainer p-4">
+                <Text className="font-semibold text-error">
                   Motivo: {sale.cancellationReason}
                 </Text>
               </View>
@@ -237,7 +237,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row items-center justify-between py-2">
       <Text className="font-bold text-muted">{label}</Text>
-      <Text className="font-black text-text ">{value}</Text>
+      <Text className="font-semibold text-text ">{value}</Text>
     </View>
   );
 }

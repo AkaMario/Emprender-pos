@@ -231,9 +231,9 @@ export function ReportsScreen() {
               <Pressable
                 key={item}
                 onPress={() => setPeriod(item)}
-                className={`rounded-full px-4 py-3 ${period === item ? "bg-primary" : "bg-surface "}`}
+                className={`rounded-none px-4 py-3 ${period === item ? "bg-primary" : "bg-surface "}`}
               >
-                <Text className={`text-sm font-black ${period === item ? "text-onPrimary" : "text-text "}`}>
+                <Text className={`text-sm font-semibold ${period === item ? "text-onPrimary" : "text-text "}`}>
                   {item}
                 </Text>
               </Pressable>
@@ -245,7 +245,7 @@ export function ReportsScreen() {
           <View className="flex-row gap-2">
             <Pressable
               onPress={() => openPicker("customStart")}
-              className="flex-1 rounded-2xl bg-surface px-4 py-4 "
+              className="flex-1 rounded-none bg-surface px-4 py-4 "
             >
               <Text className="text-xs font-bold text-muted">Inicio</Text>
               <Text className="mt-1 text-base font-semibold text-text ">
@@ -254,7 +254,7 @@ export function ReportsScreen() {
             </Pressable>
             <Pressable
               onPress={() => openPicker("customEnd")}
-              className="flex-1 rounded-2xl bg-surface px-4 py-4 "
+              className="flex-1 rounded-none bg-surface px-4 py-4 "
             >
               <Text className="text-xs font-bold text-muted">Fin</Text>
               <Text className="mt-1 text-base font-semibold text-text ">
@@ -265,7 +265,7 @@ export function ReportsScreen() {
         ) : (
           <Pressable
             onPress={() => openPicker("date")}
-            className="rounded-2xl bg-surface px-4 py-4 "
+            className="rounded-none bg-surface px-4 py-4 "
           >
             <Text className="text-xs font-bold text-muted">Fecha</Text>
             <Text className="mt-1 text-base font-semibold text-text ">
@@ -289,7 +289,7 @@ export function ReportsScreen() {
         {Platform.OS === "ios" && showPicker ? (
           <Pressable
             onPress={() => setShowPicker(false)}
-            className="items-center rounded-2xl bg-surfaceElevated px-4 py-3 "
+            className="items-center rounded-none bg-surfaceElevated px-4 py-3 "
           >
             <Text className="font-bold text-text ">Cerrar calendario</Text>
           </Pressable>
@@ -316,7 +316,7 @@ export function ReportsScreen() {
       <ReportCard title="Tendencia horaria">
         <Pressable
           onPress={() => openPicker("compare")}
-          className="mb-3 rounded-2xl bg-surfaceElevated px-4 py-3 "
+          className="mb-3 rounded-none bg-surfaceElevated px-4 py-3 "
         >
           <Text className="text-xs font-bold text-muted">Comparar con</Text>
           <Text className="mt-1 text-base font-semibold text-text ">
@@ -338,17 +338,17 @@ export function ReportsScreen() {
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <View className="flex-1 rounded-2xl bg-surface p-4 ">
+    <View className="flex-1 rounded-none bg-surface p-4 ">
       <Text className="text-sm font-bold text-muted">{label}</Text>
-      <Text className="mt-2 text-2xl font-black text-text ">{value}</Text>
+      <Text className="mt-2 text-2xl font-semibold text-text ">{value}</Text>
     </View>
   );
 }
 
 function ReportCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View className="rounded-3xl bg-surface p-4 ">
-      <Text className="mb-4 text-xl font-black text-text ">{title}</Text>
+    <View className="rounded-none bg-surface p-4 ">
+      <Text className="mb-4 text-xl font-semibold text-text ">{title}</Text>
       {children}
     </View>
   );
@@ -378,7 +378,7 @@ function WeeklyBarChart({
                 {item.total > 0 ? formatCurrency(item.total) : ""}
               </Text>
               <View
-                className={`w-full rounded-t-xl ${item.isToday ? "bg-primary" : "bg-chart4"}`}
+                className={`w-full rounded-none ${item.isToday ? "bg-primary" : "bg-chart4"}`}
                 style={{ height }}
               />
             </Pressable>
@@ -387,7 +387,7 @@ function WeeklyBarChart({
       </View>
       <View className="mt-2 flex-row gap-2 pl-2">
         {data.map((item) => (
-          <Text key={item.day} className="flex-1 text-center text-xs font-black text-muted">
+          <Text key={item.day} className="flex-1 text-center text-xs font-semibold text-muted">
             {item.day}
           </Text>
         ))}
@@ -396,7 +396,7 @@ function WeeklyBarChart({
         Tendencia: {trend >= 0 ? "sube" : "baja"} {formatCurrency(Math.abs(trend))} de Lun a Dom
       </Text>
       {selectedBar ? (
-        <Text className="mt-2 rounded-xl bg-primaryContainer p-3 text-center font-black text-link">
+        <Text className="mt-2 rounded-none bg-primaryContainer p-3 text-center font-semibold text-link">
           {selectedBar.day}: {formatCurrency(selectedBar.total)}
         </Text>
       ) : null}
@@ -411,13 +411,11 @@ function CategoryPieChart({ data }: { data: CategorySales[] }) {
 
   return (
     <View className="gap-4">
-      <View className="items-center">
-        <View className="h-36 w-36 items-center justify-center rounded-full border-[18px] border-primary bg-surface ">
-          <Text className="text-3xl font-black text-text ">100%</Text>
-          <Text className="text-xs font-bold text-muted">{formatCurrency(total)}</Text>
-        </View>
+      <View className="gap-1">
+        <Text className="text-sm font-medium text-muted">Total por categorías</Text>
+        <Text className="text-2xl font-semibold text-text">{formatCurrency(total)}</Text>
       </View>
-      <View className="h-5 flex-row overflow-hidden rounded-full bg-surfaceElevated">
+      <View className="h-5 flex-row overflow-hidden rounded-none bg-surfaceElevated">
         {data.map((item, index) => (
           <View
             key={item.category}
@@ -431,10 +429,10 @@ function CategoryPieChart({ data }: { data: CategorySales[] }) {
       {data.map((item, index) => (
         <View key={item.category} className="flex-row items-center justify-between gap-3">
           <View className="flex-row items-center gap-2">
-            <View className="h-3 w-3 rounded-full" style={{ backgroundColor: categoryColors[index % categoryColors.length] }} />
+            <View className="h-3 w-3 rounded-none" style={{ backgroundColor: categoryColors[index % categoryColors.length] }} />
             <Text className="font-bold text-muted ">{item.category}</Text>
           </View>
-          <Text className="font-black text-text ">
+          <Text className="font-semibold text-text ">
             {item.percentage}% · {formatCurrency(item.total)}
           </Text>
         </View>
@@ -462,10 +460,10 @@ function HourlyLineChart({ data, compareData }: { data: HourlySales[]; compareDa
 
           return (
             <View key={item.hour} className="flex-1 items-center justify-end">
-              {isPeak ? <Text className="mb-1 text-[10px] font-black text-link">{item.orders}</Text> : null}
+              {isPeak ? <Text className="mb-1 text-[10px] font-semibold text-link">{item.orders}</Text> : null}
               <View className="w-full items-center justify-end" style={{ height: 124 }}>
-                {compareHeight > 0 ? <View className="absolute bottom-0 w-1 rounded-full bg-chart4" style={{ height: compareHeight }} /> : null}
-                <View className={`w-2 rounded-full ${isPeak ? "bg-primary" : "bg-primary"}`} style={{ height }} />
+                {compareHeight > 0 ? <View className="absolute bottom-0 w-1 rounded-none bg-chart4" style={{ height: compareHeight }} /> : null}
+                <View className={`w-2 rounded-none ${isPeak ? "bg-primary" : "bg-primary"}`} style={{ height }} />
               </View>
             </View>
           );
@@ -473,7 +471,7 @@ function HourlyLineChart({ data, compareData }: { data: HourlySales[]; compareDa
       </View>
       <View className="mt-2 flex-row gap-1 pl-2">
         {data.map((item) => (
-          <Text key={item.hour} className="flex-1 text-center text-[10px] font-black text-muted">
+          <Text key={item.hour} className="flex-1 text-center text-[10px] font-semibold text-muted">
             {item.hour > 12 ? `${item.hour - 12}p` : `${item.hour}a`}
           </Text>
         ))}
@@ -495,15 +493,15 @@ function TopProductsList({ data }: { data: TopProduct[] }) {
   return (
     <View className="gap-3">
       {data.map((item, index) => (
-        <View key={`${item.dishName}-${index}`} className="gap-2 rounded-2xl bg-background p-3 ">
+        <View key={`${item.dishName}-${index}`} className="gap-2 rounded-none bg-background p-3 ">
           <View className="flex-row items-center justify-between gap-3">
-            <Text className="flex-1 font-black text-text ">
+            <Text className="flex-1 font-semibold text-text ">
               {index + 1}. {item.dishName}
             </Text>
-            <Text className="font-black text-text ">{item.quantity} und</Text>
+            <Text className="font-semibold text-text ">{item.quantity} und</Text>
           </View>
-          <View className="h-3 overflow-hidden rounded-full bg-surfaceElevated ">
-            <View className="h-full rounded-full bg-primary" style={{ width: `${(item.quantity / maxQuantity) * 100}%` }} />
+          <View className="h-3 overflow-hidden rounded-none bg-surfaceElevated ">
+            <View className="h-full rounded-none bg-primary" style={{ width: `${(item.quantity / maxQuantity) * 100}%` }} />
           </View>
           <Text className="text-sm font-bold text-muted">Ingreso: {formatCurrency(item.total)}</Text>
         </View>

@@ -62,14 +62,14 @@ export default function InventoryHistory() {
     <SafeAreaView edges={[]} className="flex-1 bg-background ">
       <ScreenScroll contentContainerClassName="gap-4 p-4 pb-10">
         <LoadFeedback {...loadStatus} />
-        <View className="rounded-3xl bg-surface p-5 ">
-          <Text className="text-sm font-black uppercase tracking-wide text-muted">
+        <View className="rounded-none bg-surface p-5 ">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-muted">
             Balance actual
           </Text>
-          <Text className="mt-2 text-3xl font-black text-text ">
+          <Text className="mt-2 text-3xl font-semibold text-text ">
             {item?.name ?? "Insumo"}
           </Text>
-          <Text className="mt-2 text-xl font-black text-link">
+          <Text className="mt-2 text-xl font-semibold text-link">
             {item ? `${item.currentQuantity} ${item.unit}` : "-"}
           </Text>
           {item ? (
@@ -85,10 +85,10 @@ export default function InventoryHistory() {
               <Pressable
                 key={value}
                 onPress={() => setType(value)}
-                className={`rounded-full px-4 py-3 ${type === value ? "bg-primary" : "bg-surface "}`}
+                className={`rounded-none px-4 py-3 ${type === value ? "bg-primary" : "bg-surface "}`}
               >
                 <Text
-                  className={`text-sm font-black ${type === value ? "text-onPrimary" : "text-text "}`}
+                  className={`text-sm font-semibold ${type === value ? "text-onPrimary" : "text-text "}`}
                 >
                   {movementLabel(value)}
                 </Text>
@@ -102,19 +102,19 @@ export default function InventoryHistory() {
             value={startDate}
             onChangeText={setStartDate}
             placeholder="Desde YYYY-MM-DD"
-            className="flex-1 rounded-2xl bg-surface px-4 py-4 font-semibold text-text "
+            className="flex-1 rounded-none bg-surface px-4 py-4 font-semibold text-text "
           />
           <AppInput
             value={endDate}
             onChangeText={setEndDate}
             placeholder="Hasta YYYY-MM-DD"
-            className="flex-1 rounded-2xl bg-surface px-4 py-4 font-semibold text-text "
+            className="flex-1 rounded-none bg-surface px-4 py-4 font-semibold text-text "
           />
         </View>
 
         <View className="gap-3">
           {movements.length === 0 ? (
-            <Text className="rounded-2xl bg-surface p-5 text-center font-semibold text-muted ">
+            <Text className="rounded-none bg-surface p-5 text-center font-semibold text-muted ">
               No hay movimientos para este filtro.
             </Text>
           ) : null}
@@ -122,10 +122,10 @@ export default function InventoryHistory() {
             const color = movementColor(movement.type);
 
             return (
-              <View key={movement.id} className="rounded-2xl bg-surface p-4 ">
+              <View key={movement.id} className="rounded-none bg-surface p-4 ">
                 <View className="flex-row items-start justify-between gap-3">
                   <View className="flex-1">
-                    <Text className="font-black text-text ">
+                    <Text className="font-semibold text-text ">
                       {movementLabel(movement.type)}
                     </Text>
                     <Text className="mt-1 text-sm font-semibold text-muted">
@@ -159,10 +159,10 @@ export default function InventoryHistory() {
                     ) : null}
                   </View>
                   <View
-                    className="rounded-full px-3 py-1"
+                    className="rounded-none px-3 py-1"
                     style={{ backgroundColor: colorContainer(c, color) }}
                   >
-                    <Text className="font-black" style={{ color }}>
+                    <Text className="font-semibold" style={{ color }}>
                       {movement.quantity}
                     </Text>
                   </View>

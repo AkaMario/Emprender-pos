@@ -23,7 +23,7 @@ export function Copy({ children }: { children: React.ReactNode }) {
 }
 export function ErrorText({ message }: { message: string }) {
   const c = useDesignColors();
-  return message ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ color: c.error, fontSize: 14, lineHeight: 21, padding: 12, borderRadius: radii.control, borderWidth: 1, borderColor: c.error }}> {message}</Text> : null;
+  return message ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ color: c.error, fontSize: 14, lineHeight: 21, padding: 12, borderRadius: radii.control, borderWidth: 1, borderColor: c.separator }}> {message}</Text> : null;
 }
 export { Button } from '@/components/ui/button';
 export function Field({ label, error, hint, required, ...props }: React.ComponentProps<typeof TextInput> & { label: string; error?: string; hint?: string; required?: boolean }) {
@@ -32,7 +32,7 @@ export function Field({ label, error, hint, required, ...props }: React.Componen
   return <View style={{ gap: spacing.sm }}><Text style={{ color: c.text, fontSize: 14, fontWeight: '600' }}>{label}{required ? ' *' : ''}</Text>
     <TextInput disableFullscreenUI keyboardAppearance={mode} selectionColor={c.primary} cursorColor={c.primary} {...props} accessibilityLabel={props.accessibilityLabel ?? label} accessibilityHint={error || hint} placeholderTextColor={c.muted}
       onFocus={(event) => { setFocused(true); revealFocusedInput(); props.onFocus?.(event); }} onBlur={(event) => { setFocused(false); props.onBlur?.(event); }}
-      style={[{ minHeight: metrics.touch, borderRadius: radii.control, borderWidth: focused || error ? 2 : 1, borderColor: error ? c.error : focused ? c.primary : c.border, backgroundColor: c.surface, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, color: c.text, textAlignVertical: props.multiline ? 'top' : 'center', opacity: props.editable === false ? 0.65 : 1 }, props.style]} />
+      style={[{ minHeight: metrics.touch, borderRadius: radii.control, borderWidth: focused || error ? 2 : 1, borderColor: focused ? c.text : c.border, backgroundColor: c.surface, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, color: c.text, textAlignVertical: props.multiline ? 'top' : 'center', opacity: props.editable === false ? 0.65 : 1 }, props.style]} />
     {error ? <ErrorText message={error} /> : hint ? <Text style={{ color: c.muted, fontSize: 14 }}>{hint}</Text> : null}
   </View>;
 }

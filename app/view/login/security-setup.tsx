@@ -51,12 +51,12 @@ export function SecuritySetupView({
       </Pressable>
 
       {title ? (
-        <Text className="mb-5 text-xl font-black text-text ">{title}</Text>
+        <Text className="mb-5 text-xl font-semibold text-text ">{title}</Text>
       ) : null}
 
       <FieldLabel>Pregunta de seguridad</FieldLabel>
       {readOnlyQuestion ? (
-        <Text className="mb-4 rounded-md bg-primaryContainer px-3 py-2 text-xs font-semibold text-link">
+        <Text className="mb-4 rounded-none bg-primaryContainer px-3 py-2 text-xs font-semibold text-link">
           {securityQuestion || "No encontramos una pregunta de seguridad."}
         </Text>
       ) : (
@@ -67,7 +67,7 @@ export function SecuritySetupView({
             return (
               <Pressable
                 key={question}
-                className={`rounded-md border px-3 py-2 ${selected ? "border-primary bg-primaryContainer" : "border-separator bg-surfaceElevated"}`}
+                className={`rounded-none border px-3 py-2 ${selected ? "border-primary bg-primaryContainer" : "border-separator bg-surfaceElevated"}`}
                 onPress={() => onChangeSecurityQuestion(question)}
               >
                 <Text className="text-xs text-text ">{question}</Text>

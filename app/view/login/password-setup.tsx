@@ -47,7 +47,7 @@ export function PasswordSetupView({
       </Pressable>
 
       {title ? (
-        <Text className="mb-5 text-xl font-black text-text ">{title}</Text>
+        <Text className="mb-5 text-xl font-semibold text-text ">{title}</Text>
       ) : null}
 
       <FieldLabel>Nueva contraseña</FieldLabel>

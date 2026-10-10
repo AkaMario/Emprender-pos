@@ -10,8 +10,8 @@ export function buttonColors(c: DesignColors, variant: ButtonVariant, { pressed 
   switch (variant) {
     case 'primary': return { background: pressed ? c.primaryPressed : c.primary, foreground: c.onPrimary, border: c.primary };
     case 'destructive': return { background: c.error, foreground: c.onError, border: c.error };
-    case 'secondary': return { background: selected ? c.primaryContainer : pressed ? c.surfaceElevated : c.surface, foreground: c.link, border: selected ? c.primary : c.border };
-    case 'outline': return { background: selected ? c.primaryContainer : pressed ? c.surfaceElevated : 'transparent', foreground: c.link, border: selected ? c.primary : c.border };
+    case 'secondary': return { background: selected ? c.primary : pressed ? c.primaryContainer : c.surfaceElevated, foreground: selected ? c.onPrimary : c.text, border: c.border };
+    case 'outline': return { background: selected ? c.primary : pressed ? c.surfaceElevated : c.surface, foreground: selected ? c.onPrimary : c.text, border: c.border };
     case 'ghost': return { background: selected || pressed ? c.primaryContainer : 'transparent', foreground: c.link, border: 'transparent' };
   }
 }
