@@ -1,8 +1,9 @@
+import { useTutorial } from "@/context/tutorial";
 import { ActionPressable as Pressable } from '@/components/ui/action-pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, usePathname } from "expo-router";
-import React from "react";
-import { Text, View, Modal, ScrollView } from "react-native";
+import React, { useRef } from "react";
+import { Text, View, Modal, ScrollView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDesignColors } from "@/constants/design";
 import { useBusiness } from "@/context/business";
@@ -20,6 +21,8 @@ interface SidebarItem {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { profile, definition } = useBusiness();
+  const { start } = useTutorial();
+  const replayAfterDismiss = useRef(false);
   const router = useRouter();
   const c = useDesignColors();
   const pathname = usePathname();
@@ -42,7 +45,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   return (
-    <Modal visible={isOpen} transparent animationType="none" onRequestClose={onClose}>
+    <Modal visible={isOpen} transparent animationType="none" onRequestClose={onClose} onDismiss={() => {
+      if (replayAfterDismiss.current) {
+        replayAfterDismiss.current = false;
+        router.navigate('/(tabs)/settings');
+        start();
+      }
+    }}>
       <View style={{ flex: 1, backgroundColor: 'transparent' }}>
         <Pressable accessibilityRole="button" accessibilityLabel="Cerrar menú" onPress={onClose} style={{ backgroundColor: c.scrim, opacity: 0.6, position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} />
         <SafeAreaView accessibilityViewIsModal onAccessibilityEscape={onClose} style={{ width: '85%', maxWidth: 360, flex: 1, backgroundColor }}>
@@ -50,7 +59,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <Text accessibilityRole="header" style={{ flex: 1, fontSize: 22, fontWeight: '700', color: textColor }}>{profile?.name ?? 'Mi emprendimiento'}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Cerrar menú" onPress={onClose} style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="close" size={24} color={textColor} /></Pressable>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 12, gap: 8 }}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12, gap: 8 }}>
             {sidebarItems.map((item) => {
               const selected = pathname === item.route.replace('/(tabs)', '').replace(/\/$/, '') || (item.label === 'Inicio' && pathname === '/');
               return <Pressable key={item.route} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => handleNavigate(item.route)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, padding: 16, borderRadius: 0, backgroundColor: selected ? c.primaryContainer : c.surface }}>
@@ -59,6 +68,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               </Pressable>;
             })}
           </ScrollView>
+          <View style={{ padding: 12, borderTopWidth: 1, borderColor: c.separator }}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Tutorial de configuración" onPress={() => {
+              // iOS must finish dismissing the sidebar before presenting the guide.
+              replayAfterDismiss.current = Platform.OS === 'ios';
+              onClose?.();
+              if (!replayAfterDismiss.current) {
+                router.navigate('/(tabs)/settings');
+                start();
+              }
+            }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, padding: 16}}>
+              <Ionicons name="help-circle-outline" size={22} color={c.muted} accessible={false} />
+              <Text style={{ color: c.muted, fontSize: 16, fontWeight: '500' }}>Tutorial</Text>
+            </Pressable>
+          </View>
         </SafeAreaView>
       </View>
     </Modal>

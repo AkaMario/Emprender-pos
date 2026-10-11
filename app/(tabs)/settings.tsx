@@ -1,3 +1,4 @@
+import { TutorialScreen } from "@/context/tutorial";
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import { AppAlert as Alert } from "@/components/ui/alerts";
 import { ScreenScroll } from "@/components/ui/screen-scroll";
@@ -133,7 +134,7 @@ export default function Settings() {
   }
 
   return (
-    <ScreenScroll
+    <TutorialScreen id="settings"><ScreenScroll
       className="flex-1 bg-surface "
       contentContainerClassName="px-6 py-5"
     >
@@ -246,6 +247,6 @@ export default function Settings() {
 
         </View>
       </View>
-    </ScreenScroll>
+    </ScreenScroll></TutorialScreen>
   );
 }

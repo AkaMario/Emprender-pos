@@ -1,3 +1,4 @@
+import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay";
 import { Tabs, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -121,6 +122,7 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
+      <TutorialOverlay />
     </SafeAreaView>
   );
 }

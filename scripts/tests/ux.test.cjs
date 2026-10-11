@@ -327,3 +327,42 @@ test('business Choices uses the same high-contrast selectors and preserves the s
   assert.equal(changed, 'g');
   assert.ok(controls.every((control) => typeof control.style === 'object'));
 });
+
+
+test('sidebar offers the configuration tutorial and replays it after closing the menu', () => {
+  const events = [];
+  const f = fixture({
+    '@/context/business': { useBusiness: () => ({ profile: { name: 'Mi tienda', model: 'retail' }, definition: { catalog: 'Catálogo', inventory: 'Inventario', operations: 'Movimientos' } }) },
+    '@/context/tutorial': { useTutorial: () => ({ start: () => events.push('start') }) },
+    'expo-router': { usePathname: () => '/', useRouter: () => ({ navigate: (route) => events.push(route) }) },
+  });
+  f.render(f.load('components/layout/sidebar.tsx').Sidebar, { isOpen: true, onClose: () => events.push('close') });
+  const replay = f.nodes.find((node) => node.accessibilityLabel === 'Tutorial de configuración');
+  assert.equal(replay.accessibilityRole, 'button');
+  replay.onPress();
+  assert.deepEqual(events, ['close', '/(tabs)/settings', 'start']);
+});
+
+
+test('iOS waits until the sidebar modal is dismissed before opening the tutorial', () => {
+  const events = [];
+  const f = fixture({
+    'react-native': { Platform: { OS: 'ios' }, View: (props) => React.createElement('div', null, props.children), Text: (props) => React.createElement('span', null, props.children), ScrollView: (props) => React.createElement('div', null, props.children),
+      Modal: (props) => { events.push(props); return React.createElement('div', null, props.children); } },
+    '@/components/ui/action-pressable': { ActionPressable: (props) => { events.push(props); return React.createElement('button', null, props.children); } },
+    '@/constants/design': { useDesignColors: () => ({}) },
+    '@/context/business': { useBusiness: () => ({ profile: { name: 'Tienda', model: 'retail' } }) },
+    '@/context/tutorial': { useTutorial: () => ({ start: () => events.push('start') }) },
+    'expo-router': { usePathname: () => '/', useRouter: () => ({ navigate: (route) => events.push(route) }) },
+  });
+  f.render(f.load('components/layout/sidebar.tsx').Sidebar, { isOpen: true, onClose: () => events.push('close') });
+  const replay = events.find((node) => node.accessibilityLabel === 'Tutorial de configuración');
+  const modal = events.find((node) => typeof node.onDismiss === 'function');
+  events.length = 0;
+  replay.onPress();
+  assert.deepEqual(events, ['close']);
+  modal.onDismiss();
+  assert.deepEqual(events, ['close', '/(tabs)/settings', 'start']);
+  modal.onDismiss();
+  assert.equal(events.filter((event) => event === 'start').length, 1);
+});

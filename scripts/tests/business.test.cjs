@@ -60,7 +60,7 @@ async function fixture(model, version = 3, platform = 'web', beforeMigration) {
   const domain = load('domain/business');
   try { await auth.getDatabase(); } catch (error) { sqlite.close(); throw error; }
   if (model) await business.selectBusiness({ name: 'Prueba', model });
-  return { sqlite, db, business, domain, auth, restaurant: () => load('database/pos-database'),
+  return { sqlite, db, business, domain, auth, tutorial: () => load('database/tutorial-database'), tutorials: () => load('domain/tutorial').BUSINESS_TUTORIALS, restaurant: () => load('database/pos-database'),
     async restart() { modules.clear(); const nextAuth = load('database/auth-database'); await nextAuth.getDatabase(); return load('database/business-database'); },
     close: () => sqlite.close() };
 }
@@ -302,4 +302,33 @@ test('exact decimal arithmetic, incompatible units and calendar month boundaries
     assert.equal(f.domain.rentalPeriods(jan, feb + 1000, 'month'), 2);
     assert.throws(() => f.domain.parseLocalDate('2027-02-30 10:00'), /inválida/);
   } finally { f.close(); }
+});
+
+
+test('business tutorial is initially unseen, persists across restart, and stays scoped to its model', async () => {
+  for (const model of ['restaurant', 'retail', 'measured', 'rental', 'services']) {
+    const f = await fixture(model);
+    try {
+      assert.equal(await f.tutorial().hasSeenBusinessTutorial(model), false);
+      const steps = f.tutorials()[model];
+      assert.ok(steps.length >= 5 && steps.length <= 6);
+      assert.equal(steps[0].target, 'settings');
+      assert.equal(steps.at(-1).target, 'settings');
+      assert.ok(steps.some((step) => step.target === 'menu'));
+      assert.ok(steps.some((step) => step.target === 'sales'));
+      if (model === 'services') {
+        assert.ok(!steps.some((step) => step.target === 'inventory'));
+        assert.ok(steps.findIndex((step) => step.target === 'operations') < steps.findIndex((step) => step.target === 'sales'));
+      }
+      if (model === 'restaurant') assert.ok(steps.findIndex((step) => step.target === 'inventory') < steps.findIndex((step) => step.target === 'menu'));
+      await f.tutorial().markBusinessTutorialSeen(model);
+      await f.tutorial().markBusinessTutorialSeen(model);
+      await f.restart();
+      assert.equal(await f.tutorial().hasSeenBusinessTutorial(model), true);
+      const other = model === 'retail' ? 'restaurant' : 'retail';
+      assert.equal(await f.tutorial().hasSeenBusinessTutorial(other), false);
+      assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS count FROM settings WHERE key LIKE ?').get('business_tutorial_seen:%').count, 1);
+      assert.equal((await f.business.getBusinessProfile()).model, model);
+    } finally { f.close(); }
+  }
 });

@@ -1,3 +1,4 @@
+import { TutorialProvider } from "@/context/tutorial";
 import { AlertHost } from "@/components/ui/alerts";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeRoot } from "@/components/layout/theme-root";
@@ -59,7 +60,9 @@ export default function RootLayout() {
       <ThemeRoot>
         <AuthProvider>
           <BusinessProvider>
-            <RootNavigator />
+            <TutorialProvider>
+              <RootNavigator />
+            </TutorialProvider>
             <AlertHost />
           </BusinessProvider>
         </AuthProvider>
