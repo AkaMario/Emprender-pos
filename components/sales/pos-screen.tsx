@@ -1,3 +1,4 @@
+import { SelectionOption as Choice } from "@/components/ui/selection-option";
 import { Button } from "@/components/ui/button";
 import { useDesignColors } from "@/constants/design";
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
@@ -433,30 +434,6 @@ function Section({
   );
 }
 
-function Choice({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
-      onPress={onPress}
-      className={`rounded-none px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
-    >
-      <Text
-        className={`text-sm font-semibold ${selected ? "text-onPrimary" : "text-text "}`}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
 
 function Input(props: React.ComponentProps<typeof AppInput>) {
   return (

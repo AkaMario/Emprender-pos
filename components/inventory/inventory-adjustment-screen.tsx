@@ -1,5 +1,5 @@
+import { SelectionOption } from "@/components/ui/selection-option";
 import { Button } from "@/components/ui/button";
-import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import { LoadFeedback, useLoadFeedback } from "@/components/ui/load-feedback";
 import { ErrorText } from "@/components/business/ui";
 import { AppAlert as Alert } from "@/components/ui/alerts";
@@ -100,20 +100,7 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
           <View className="gap-2">
             <Text className="text-sm font-semibold text-muted ">Insumo</Text>
             {items.map((item) => (
-              <Pressable
-                key={item.id}
-                onPress={() => setSelectedItemId(item.id)}
-                className={`rounded-none p-4 ${selectedItemId === item.id ? "bg-primary" : "bg-surface "}`}
-              >
-                <View className="flex-row items-center justify-between gap-3">
-                  <Text className={`font-semibold ${selectedItemId === item.id ? "text-onPrimary" : "text-text "}`}>
-                    {item.name}
-                  </Text>
-                  <Text className={`font-bold ${selectedItemId === item.id ? "text-onPrimary" : "text-muted"}`}>
-                    {item.currentQuantity} {item.unit}
-                  </Text>
-                </View>
-              </Pressable>
+              <SelectionOption key={item.id} label={item.name} description={`${item.currentQuantity} ${item.unit}`} selected={selectedItemId === item.id} onPress={() => setSelectedItemId(item.id)} />
             ))}
           </View>
         ) : null}
@@ -142,9 +129,7 @@ export function InventoryAdjustmentScreen({ mode }: InventoryAdjustmentScreenPro
           <>
             <View className="flex-row flex-wrap gap-2">
               {["Merma", "Daño", "Ajuste", "Caducado", "Otro"].map((item) => (
-                <Pressable key={item} onPress={() => setReason(item)} className={`rounded-none px-4 py-3 ${reason === item ? "bg-primary" : "bg-surface "}`}>
-                  <Text className={`text-sm font-semibold ${reason === item ? "text-onPrimary" : "text-text "}`}>{item}</Text>
-                </Pressable>
+                <SelectionOption key={item} label={item} selected={reason === item} onPress={() => setReason(item)} />
               ))}
             </View>
             <Input value={notes} onChangeText={setNotes} placeholder="Observaciones adicionales (opcional)" />

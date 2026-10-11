@@ -259,3 +259,71 @@ test('legacy action controls pass concrete styles to NativeWind and retain inlin
   assert.equal(control.style[0].opacity, 0.5);
   assert.ok(control.style[0].minHeight >= 48);
 });
+
+test('report charts fit narrow screens without button-sized columns or fixed empty plots', () => {
+  const f = fixture({ '@/database/pos-database': { formatCurrency: (value) => `$ ${value}` } });
+  const { WeeklySalesChart, CategoryBreakdown, HourlyOrdersChart } = f.load('components/reports/report-charts.tsx');
+  const data = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'].map((day, index) => ({ day, total: index === 6 ? 10000 : 0, isToday: false }));
+  f.render(WeeklySalesChart, { data });
+  assert.equal(f.nodes.filter((node) => node.type === 'Pressable').length, 0);
+  const fills = f.nodes.filter((node) => typeof node.style?.width === 'string' && node.style.width.endsWith('%'));
+  assert.deepEqual(fills.map((node) => node.style.width), ['0%', '0%', '0%', '0%', '0%', '0%', '100%']);
+  assert.ok(f.nodes.filter((node) => node.type === 'View').every((node) => !node.style?.minWidth && (!node.style?.height || node.style.height === 6 || node.style.height === '100%')));
+  for (const [Chart, props] of [[WeeklySalesChart, { data: [] }], [CategoryBreakdown, { data: [] }], [HourlyOrdersChart, { data: [], compareData: [] }]]) {
+    f.render(Chart, props);
+    assert.equal(f.nodes.filter((node) => node.type === 'View').length, 0);
+    assert.ok(f.nodes.some((node) => node.type === 'Text' && String(node.children).startsWith('No hay')));
+  }
+});
+
+test('hourly report compares matching hours even when the series have different order', () => {
+  const f = fixture({ '@/database/pos-database': { formatCurrency: String } });
+  const { HourlyOrdersChart } = f.load('components/reports/report-charts.tsx');
+  f.render(HourlyOrdersChart, { data: [{ hour: 13, orders: 2 }, { hour: 14, orders: 0 }], compareData: [{ hour: 14, orders: 4 }, { hour: 13, orders: 1 }] });
+  const labels = f.nodes.filter((node) => node.type === 'Text').map((node) => React.Children.toArray(node.children).join(''));
+  assert.ok(labels.includes('2 órdenes · Comparación: 1'));
+  assert.ok(labels.includes('0 órdenes · Comparación: 4'));
+  const fills = f.nodes.filter((node) => typeof node.style?.width === 'string' && node.style.width.endsWith('%'));
+  assert.deepEqual(fills.map((node) => node.style.width), ['50%', '25%', '0%', '100%']);
+});
+
+test('selectors keep concrete backgrounds and readable labels in both themes and all states', () => {
+  const luminance = (hex) => {
+    const [r, g, b] = hex.slice(1).match(/../g).map((part) => parseInt(part, 16) / 255).map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    return r * 0.2126 + g * 0.7152 + b * 0.0722;
+  };
+  for (const mode of ['light', 'dark']) for (const selected of [false, true]) for (const disabled of [false, true]) for (const pressed of [false, true]) {
+    const f = fixture({ '@/hooks/use-color-scheme': { useColorScheme: () => mode }, react: { ...React, useState: () => [pressed, () => {}] } });
+    const { SelectionOption } = f.load('components/ui/selection-option.tsx');
+    const { palette } = f.load('constants/design.ts');
+    const { buttonColors } = f.load('constants/button-styles.ts');
+    f.render(SelectionOption, { label: 'Categoría de prueba', description: 'Descripción de la opción', selected, disabled, onPress() {} });
+    const control = f.nodes.find((node) => node.type === 'Pressable');
+    const colors = buttonColors(palette[mode], 'secondary', { selected, disabled, pressed });
+    assert.equal(typeof control.style, 'object');
+    assert.equal(control.style.backgroundColor, colors.background);
+    assert.equal(control.style.opacity, undefined);
+    assert.equal(control.style.borderWidth, 1);
+    assert.equal(control.style.borderRadius, 0);
+    assert.deepEqual(control.accessibilityState, { checked: selected, disabled });
+    assert.equal(control.disabled, disabled);
+    for (const text of f.nodes.filter((node) => node.type === 'Text')) {
+      const levels = [luminance(text.style.color), luminance(control.style.backgroundColor)].sort((a, b) => b - a);
+      assert.ok((levels[0] + 0.05) / (levels[1] + 0.05) >= 4.5, `${mode}: selected=${selected}, disabled=${disabled}, pressed=${pressed}`);
+    }
+  }
+});
+
+test('business Choices uses the same high-contrast selectors and preserves the selected value', () => {
+  const f = fixture();
+  const { Choices } = f.load('components/business/ui.tsx');
+  let changed;
+  f.render(Choices, { label: 'Unidad', value: 'kg', options: [{ value: 'kg', label: 'Kilogramos' }, { value: 'g', label: 'Gramos' }], onChange: (value) => { changed = value; } });
+  const controls = f.nodes.filter((node) => node.type === 'Pressable');
+  assert.equal(controls.length, 2);
+  assert.equal(controls[0].accessibilityState.checked, true);
+  assert.equal(controls[1].accessibilityState.checked, false);
+  controls[1].onPress();
+  assert.equal(changed, 'g');
+  assert.ok(controls.every((control) => typeof control.style === 'object'));
+});

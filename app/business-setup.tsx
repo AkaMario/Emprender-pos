@@ -1,7 +1,6 @@
-import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
+import { SelectionOption } from "@/components/ui/selection-option";
 import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text, View } from "react-native";
 import { useBusiness } from "@/context/business";
 import { useAuth } from "@/context/auth";
 import { BUSINESS_MODELS, type BusinessModel } from "@/domain/business";
@@ -86,25 +85,7 @@ export default function BusinessSetup() {
           const disabled =
             saving || checking || (legacy && key !== "restaurant");
           return (
-            <Pressable
-              key={key}
-              accessibilityRole="radio"
-              accessibilityState={{ selected, disabled }}
-              disabled={disabled}
-              onPress={() => setModel(key)}
-              className={`gap-2 rounded-none border-2 p-4 ${selected ? "border-border bg-primaryContainer " : "border-separator bg-surface "}`}
-              style={{ opacity: disabled ? 0.5 : 1 }}
-            >
-              <View className="flex-row items-center gap-3">
-                <Text className="flex-1 text-lg font-bold text-text ">
-                  {option.title}
-                </Text>
-                {selected && (
-                  <Text className="text-sm font-semibold text-text">Elegido</Text>
-                )}
-              </View>
-              <Copy>{option.description}</Copy>
-            </Pressable>
+            <SelectionOption key={key} label={option.title} description={option.description} selected={selected} disabled={disabled} onPress={() => setModel(key)} />
           );
         })}
         <Copy>

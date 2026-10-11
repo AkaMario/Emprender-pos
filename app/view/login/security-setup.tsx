@@ -1,3 +1,4 @@
+import { SelectionOption } from "@/components/ui/selection-option";
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import { SECURITY_QUESTIONS } from "@/context/auth";
 import {
@@ -65,13 +66,7 @@ export function SecuritySetupView({
             const selected = securityQuestion === question;
 
             return (
-              <Pressable
-                key={question}
-                className={`rounded-none border px-3 py-2 ${selected ? "border-primary bg-primaryContainer" : "border-separator bg-surfaceElevated"}`}
-                onPress={() => onChangeSecurityQuestion(question)}
-              >
-                <Text className="text-xs text-text ">{question}</Text>
-              </Pressable>
+              <SelectionOption key={question} label={question} selected={selected} disabled={submitting} onPress={() => onChangeSecurityQuestion(question)} />
             );
           })}
         </View>

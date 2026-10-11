@@ -1,5 +1,5 @@
+import { SelectionOption as Pill } from "@/components/ui/selection-option";
 import { Button } from "@/components/ui/button";
-import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import { AppAlert as Alert } from "@/components/ui/alerts";
 import { useFormProtection } from "@/hooks/use-form-protection";
 import { FieldGroup as Field, AppInput } from "@/components/ui/form-input";
@@ -183,28 +183,5 @@ function Input(props: React.ComponentProps<typeof AppInput>) {
       className="rounded-none bg-surface px-4 py-4 text-base font-semibold text-text "
       {...props}
     />
-  );
-}
-
-function Pill({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className={`rounded-none px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
-    >
-      <Text
-        className={`text-sm font-semibold ${selected ? "text-onPrimary" : "text-text "}`}
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }

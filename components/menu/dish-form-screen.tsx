@@ -1,3 +1,4 @@
+import { SelectionOption as ChoicePill } from "@/components/ui/selection-option";
 import { Button } from "@/components/ui/button";
 import { useDesignColors } from "@/constants/design";
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
@@ -328,31 +329,5 @@ export function DishFormScreen({ mode }: DishFormScreenProps) {
         <Button title={isEdit ? "Guardar cambios" : "Guardar plato"} loading={saving} disabled={formLoading} onPress={saveDish} />
       </ScreenScroll>
     </SafeAreaView>
-  );
-}
-
-
-function ChoicePill({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
-      onPress={onPress}
-      className={`rounded-none px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
-    >
-      <Text
-        className={`text-sm font-semibold ${selected ? "text-onPrimary" : "text-text "}`}
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }

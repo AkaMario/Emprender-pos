@@ -1,3 +1,4 @@
+import { SelectionOption } from "@/components/ui/selection-option";
 import { Button } from "@/components/ui/button";
 import { colorContainer, useDesignColors } from "@/constants/design";
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
@@ -100,17 +101,7 @@ export function MenuScreen() {
               const selected = selectedCategory === category;
 
               return (
-                <Pressable
-                  key={category}
-                  onPress={() => setSelectedCategory(category)}
-                  className={`rounded-none px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}
-                >
-                  <Text
-                    className={`text-sm font-semibold ${selected ? "text-onPrimary" : "text-text "}`}
-                  >
-                    {category}
-                  </Text>
-                </Pressable>
+                <SelectionOption key={category} label={category} selected={selected} onPress={() => setSelectedCategory(category)} />
               );
             })}
           </View>

@@ -1,5 +1,6 @@
+import { SelectionOption } from "@/components/ui/selection-option";
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Text, TextInput, View } from 'react-native';
 import { metrics, radii, spacing, useDesignColors } from '@/constants/design';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ScreenScroll } from '@/components/ui/screen-scroll';
@@ -37,8 +38,8 @@ export function Field({ label, error, hint, required, ...props }: React.Componen
   </View>;
 }
 export function Choices<T extends string | number>({ label, value, options, onChange }: { label: string; value: T; options: readonly { value: T; label: string }[]; onChange: (value: T) => void }) {
-  const c = useDesignColors();
-  return <View style={{ gap: 8 }}><Copy>{label}</Copy><View accessibilityRole="radiogroup" accessibilityLabel={label} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{options.map((option) => <Pressable key={option.value} accessibilityRole="radio" accessibilityLabel={option.label} accessibilityState={{ checked: option.value === value }} onPress={() => onChange(option.value)} style={({ pressed }) => ({ minHeight: metrics.touch, justifyContent: 'center', borderRadius: radii.control, borderWidth: 1, borderColor: option.value === value ? c.primary : c.border, backgroundColor: option.value === value ? c.primary : c.surface, paddingHorizontal: 12, paddingVertical: 12, transform: [{ scale: pressed ? 0.98 : 1 }] })}><Text style={{ fontSize: 16, fontWeight: '600', color: option.value === value ? c.onPrimary : c.text }}>{option.value === value ? '✓ ' : ''}{option.label}</Text></Pressable>)}</View></View>;
+  return <View style={{ gap: 8 }}><Copy>{label}</Copy><View accessibilityRole="radiogroup" accessibilityLabel={label} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{options.map((option) => <SelectionOption key={option.value} label={option.label} selected={option.value === value} onPress={() => onChange(option.value)} />)}</View></View>;
 }
+
 export function Loading() { const c = useDesignColors(); return <View accessibilityLiveRegion="polite" style={{ flex: 1, gap: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background }}><ActivityIndicator size="large" color={c.primary} /><Copy>Cargando emprendimiento…</Copy></View>; }
 export function errorMessage(cause: unknown) { return cause instanceof Error ? cause.message : 'No se pudo completar la operación.'; }

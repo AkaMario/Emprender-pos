@@ -5,7 +5,7 @@ import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import { LoadFeedback, useLoadFeedback } from "@/components/ui/load-feedback";
 import { AppAlert as Alert } from "@/components/ui/alerts";
 import { ScreenScroll } from "@/components/ui/screen-scroll";
-import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import DateTimePicker, { type DateTimePickerChangeEvent } from "@react-native-community/datetimepicker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -16,13 +16,11 @@ import {
   formatSaleTime,
   getReportsData,
   getSalesExportRowsForRange,
-  type CategorySales,
-  type HourlySales,
   type ReportPeriod,
   type ReportsData,
-  type SalesByDay,
-  type TopProduct,
 } from "@/database/pos-database";
+
+import { CategoryBreakdown, HourlyOrdersChart, MetricCard, ReportCard, TopProductsList, WeeklySalesChart } from "./report-charts";
 
 const periods: ReportPeriod[] = ["Dia", "Semana", "Mes", "Personalizado"];
 
@@ -61,7 +59,9 @@ function periodRangeText(period: ReportPeriod, date: Date, customStart?: string,
     return `Semana del ${formatDateRange(getMonday(date), getSunday(date))}`;
   }
   if (period === "Mes") {
-    return date.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
+    const start = new Date(date);
+    start.setDate(start.getDate() - 29);
+    return formatDateRange(start, date);
   }
   if (customStart && customEnd) {
     return `${customStart} al ${customEnd}`;
@@ -77,13 +77,16 @@ export function ReportsScreen() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [compareDate, setCompareDate] = useState("");
-  const [selectedBar, setSelectedBar] = useState<SalesByDay | null>(null);
   const [reports, setReports] = useState<ReportsData | null>(null);
   const [exporting, setExporting] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<"date" | "compare" | "customStart" | "customEnd">("date");
 
   const loadReports = useCallback(async () => {
+    if (period === "Personalizado" && (!customStart || !customEnd || customStart > customEnd)) {
+      setReports(null);
+      return;
+    }
     setReports(
       await getReportsData({
         period,
@@ -192,12 +195,10 @@ export function ReportsScreen() {
     setShowPicker(true);
   }
 
-  function handlePickerChange(_event: DateTimePickerEvent, selectedDate?: Date) {
+  function handlePickerChange(_event: DateTimePickerChangeEvent, selectedDate: Date) {
     if (Platform.OS === "android") {
       setShowPicker(false);
     }
-    if (!selectedDate) return;
-
     if (pickerTarget === "date") {
       setDate(selectedDate);
     } else if (pickerTarget === "compare") {
@@ -216,296 +217,79 @@ export function ReportsScreen() {
     return customEnd ? new Date(customEnd + "T12:00:00") : new Date();
   }
 
+  const rangeIssue = period === "Personalizado"
+    ? !customStart || !customEnd ? "Selecciona el inicio y el fin del período." : customStart > customEnd ? "La fecha de fin debe ser igual o posterior al inicio." : ""
+    : "";
+
   return (
     <ScreenScroll
-      className="flex-1 bg-background "
-      contentContainerClassName="gap-5 px-4 py-5 pb-10"
+      style={{ backgroundColor: c.background }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 16 }}
       showsVerticalScrollIndicator={false}
-    ><LoadFeedback {...loadStatus} />
-      <Button title="Exportar Excel" loading={exporting} onPress={handleExport} icon={(color) => <MaterialIcons name="file-download" size={22} color={color} />} />
-
-      <View className="gap-3">
-        <ScreenScroll horizontal showsHorizontalScrollIndicator={false}>
-          <View className="flex-row gap-2">
-            {periods.map((item) => (
-              <Pressable
-                key={item}
-                onPress={() => setPeriod(item)}
-                className={`rounded-none px-4 py-3 ${period === item ? "bg-primary" : "bg-surface "}`}
-              >
-                <Text className={`text-sm font-semibold ${period === item ? "text-onPrimary" : "text-text "}`}>
-                  {item}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScreenScroll>
-
+    >
+      <ReportCard title="Período del reporte">
+        <View accessibilityLabel="Período del reporte" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {periods.map((item) => <View key={item} style={{ flexGrow: 1, flexBasis: '45%', minWidth: 104 }}>
+            <Button title={item === 'Dia' ? 'Día' : item === 'Mes' ? '30 días' : item}
+              variant={period === item ? 'primary' : 'secondary'} selected={period === item}
+              onPress={() => { setPeriod(item); setShowPicker(false); }} />
+          </View>)}
+        </View>
         {period === "Personalizado" ? (
-          <View className="flex-row gap-2">
-            <Pressable
-              onPress={() => openPicker("customStart")}
-              className="flex-1 rounded-none bg-surface px-4 py-4 "
-            >
-              <Text className="text-xs font-bold text-muted">Inicio</Text>
-              <Text className="mt-1 text-base font-semibold text-text ">
-                {customStart || "Seleccionar"}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => openPicker("customEnd")}
-              className="flex-1 rounded-none bg-surface px-4 py-4 "
-            >
-              <Text className="text-xs font-bold text-muted">Fin</Text>
-              <Text className="mt-1 text-base font-semibold text-text ">
-                {customEnd || "Seleccionar"}
-              </Text>
-            </Pressable>
+          <View style={{ gap: 8 }}>
+            <DateControl label="Desde" value={customStart || "Seleccionar fecha"} onPress={() => openPicker("customStart")} />
+            <DateControl label="Hasta" value={customEnd || "Seleccionar fecha"} onPress={() => openPicker("customEnd")} />
           </View>
-        ) : (
-          <Pressable
-            onPress={() => openPicker("date")}
-            className="rounded-none bg-surface px-4 py-4 "
-          >
-            <Text className="text-xs font-bold text-muted">Fecha</Text>
-            <Text className="mt-1 text-base font-semibold text-text ">
-              {periodRangeText(period, date)}
-            </Text>
-          </Pressable>
-        )}
-
-        {showPicker && (
-          <DateTimePicker
-            value={pickerValue()}
-            mode="date"
-            themeVariant={colorScheme}
-            accentColor={c.primary}
-            textColor={c.text}
-            display={Platform.OS === "ios" ? "inline" : "default"}
-            onChange={handlePickerChange}
-          />
-        )}
-
-        {Platform.OS === "ios" && showPicker ? (
-          <Pressable
-            onPress={() => setShowPicker(false)}
-            className="items-center rounded-none bg-surfaceElevated px-4 py-3 "
-          >
-            <Text className="font-bold text-text ">Cerrar calendario</Text>
-          </Pressable>
-        ) : null}
-      </View>
-
-      <View className="flex-row gap-3">
-        <MetricCard label="Ventas" value={formatCurrency(reports?.totalSales ?? 0)} />
-        <MetricCard label="Ordenes" value={String(reports?.totalOrders ?? 0)} />
-      </View>
-
-      <ReportCard title="Ventas de la semana">
-        <WeeklyBarChart
-          data={reports?.salesByDay ?? []}
-          selectedBar={selectedBar}
-          onSelect={setSelectedBar}
-        />
+        ) : <DateControl label={period === 'Dia' ? 'Fecha' : period === 'Semana' ? 'Semana de la fecha seleccionada' : 'Últimos 30 días hasta la fecha seleccionada'} value={periodRangeText(period, date)} onPress={() => openPicker("date")} />}
+        {rangeIssue ? <Text accessibilityLiveRegion="polite" style={{ fontSize: 14, lineHeight: 21, color: c.muted }}>{rangeIssue}</Text> : null}
+        {showPicker && pickerTarget !== "compare" && <DateTimePicker value={pickerValue()} mode="date" themeVariant={colorScheme} accentColor={c.primary} textColor={c.text}
+          display={Platform.OS === "ios" ? "inline" : "default"} onValueChange={handlePickerChange} onDismiss={() => setShowPicker(false)} />}
+        {Platform.OS === "ios" && showPicker && pickerTarget !== "compare" && <Button title="Cerrar calendario" secondary onPress={() => setShowPicker(false)} />}
       </ReportCard>
 
-      <ReportCard title="Ventas por categoria">
-        <CategoryPieChart data={reports?.categorySales ?? []} />
-      </ReportCard>
+      <LoadFeedback {...loadStatus} />
+      {!loadStatus.loading && !loadStatus.error && !rangeIssue && reports && <>
+        <View style={{ gap: 12 }}>
+          <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: '600', color: c.text }}>Resumen del período</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            <MetricCard label="Ventas" value={formatCurrency(reports.totalSales)} />
+            <MetricCard label="Órdenes" value={String(reports.totalOrders)} />
+          </View>
+          <Button title="Exportar para Excel" variant="secondary" loading={exporting} onPress={handleExport}
+            icon={(color) => <MaterialIcons name="file-download" size={20} color={color} />} />
+        </View>
 
-      <ReportCard title="Tendencia horaria">
-        <Pressable
-          onPress={() => openPicker("compare")}
-          className="mb-3 rounded-none bg-surfaceElevated px-4 py-3 "
-        >
-          <Text className="text-xs font-bold text-muted">Comparar con</Text>
-          <Text className="mt-1 text-base font-semibold text-text ">
-            {compareDate || "Seleccionar fecha (opcional)"}
-          </Text>
-        </Pressable>
-        <HourlyLineChart
-          data={reports?.hourlySales ?? []}
-          compareData={reports?.compareHourlySales ?? []}
-        />
-      </ReportCard>
-
-      <ReportCard title="Top productos">
-        <TopProductsList data={reports?.topProducts ?? []} />
-      </ReportCard>
+        <ReportCard title="Ventas por categoría" description="Distribución de las ventas del período seleccionado.">
+          <CategoryBreakdown data={reports.categorySales} />
+        </ReportCard>
+        <ReportCard title="Productos más vendidos" description="Ordenados por unidades vendidas en el período.">
+          <TopProductsList data={reports.topProducts} />
+        </ReportCard>
+        <ReportCard title="Ventas de la semana" description={`Del ${formatDateRange(getMonday(date), getSunday(date))}. Referencia semanal de la fecha consultada.`}>
+          <WeeklySalesChart data={reports.salesByDay} />
+        </ReportCard>
+        <ReportCard title="Órdenes por hora" description={`${date.toLocaleDateString('es-CO')} · Horario de 13:00 a 23:00. Se muestran las horas con actividad.`}>
+          <DateControl label="Comparar con otro día" value={compareDate || "Seleccionar fecha (opcional)"} onPress={() => openPicker("compare")} />
+          {showPicker && pickerTarget === "compare" && <DateTimePicker value={pickerValue()} mode="date" themeVariant={colorScheme} accentColor={c.primary} textColor={c.text}
+            display={Platform.OS === "ios" ? "inline" : "default"} onValueChange={handlePickerChange} onDismiss={() => setShowPicker(false)} />}
+          {Platform.OS === "ios" && showPicker && pickerTarget === "compare" && <Button title="Cerrar calendario" secondary onPress={() => setShowPicker(false)} />}
+          {compareDate ? <Button title="Quitar comparación" variant="ghost" onPress={() => setCompareDate("")} /> : null}
+          <HourlyOrdersChart data={reports.hourlySales} compareData={reports.compareHourlySales} />
+        </ReportCard>
+      </>}
     </ScreenScroll>
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="flex-1 rounded-none bg-surface p-4 ">
-      <Text className="text-sm font-bold text-muted">{label}</Text>
-      <Text className="mt-2 text-2xl font-semibold text-text ">{value}</Text>
-    </View>
-  );
-}
-
-function ReportCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View className="rounded-none bg-surface p-4 ">
-      <Text className="mb-4 text-xl font-semibold text-text ">{title}</Text>
-      {children}
-    </View>
-  );
-}
-
-function WeeklyBarChart({
-  data,
-  selectedBar,
-  onSelect,
-}: {
-  data: SalesByDay[];
-  selectedBar: SalesByDay | null;
-  onSelect: (bar: SalesByDay) => void;
-}) {
-  const maxTotal = Math.max(1, ...data.map((item) => item.total));
-  const trend = data.length > 1 ? data[data.length - 1].total - data[0].total : 0;
-
-  return (
-    <View>
-      <View className="h-44 flex-row items-end gap-2 border-b border-l border-separator pb-2 pl-2 ">
-        {data.map((item) => {
-          const height = Math.max(8, Math.round((item.total / maxTotal) * 130));
-
-          return (
-            <Pressable key={item.day} onPress={() => onSelect(item)} className="flex-1 items-center justify-end">
-              <Text className="mb-1 text-[10px] font-bold text-muted">
-                {item.total > 0 ? formatCurrency(item.total) : ""}
-              </Text>
-              <View
-                className={`w-full rounded-none ${item.isToday ? "bg-primary" : "bg-chart4"}`}
-                style={{ height }}
-              />
-            </Pressable>
-          );
-        })}
-      </View>
-      <View className="mt-2 flex-row gap-2 pl-2">
-        {data.map((item) => (
-          <Text key={item.day} className="flex-1 text-center text-xs font-semibold text-muted">
-            {item.day}
-          </Text>
-        ))}
-      </View>
-      <Text className="mt-3 text-sm font-bold text-muted">
-        Tendencia: {trend >= 0 ? "sube" : "baja"} {formatCurrency(Math.abs(trend))} de Lun a Dom
-      </Text>
-      {selectedBar ? (
-        <Text className="mt-2 rounded-none bg-primaryContainer p-3 text-center font-semibold text-link">
-          {selectedBar.day}: {formatCurrency(selectedBar.total)}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
-function CategoryPieChart({ data }: { data: CategorySales[] }) {
+function DateControl({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
   const c = useDesignColors();
-  const categoryColors = [c.chart1, c.chart2, c.chart3, c.chart4];
-  const total = data.reduce((sum, item) => sum + item.total, 0);
-
-  return (
-    <View className="gap-4">
-      <View className="gap-1">
-        <Text className="text-sm font-medium text-muted">Total por categorías</Text>
-        <Text className="text-2xl font-semibold text-text">{formatCurrency(total)}</Text>
-      </View>
-      <View className="h-5 flex-row overflow-hidden rounded-none bg-surfaceElevated">
-        {data.map((item, index) => (
-          <View
-            key={item.category}
-            style={{
-              width: `${item.percentage}%`,
-              backgroundColor: categoryColors[index % categoryColors.length],
-            }}
-          />
-        ))}
-      </View>
-      {data.map((item, index) => (
-        <View key={item.category} className="flex-row items-center justify-between gap-3">
-          <View className="flex-row items-center gap-2">
-            <View className="h-3 w-3 rounded-none" style={{ backgroundColor: categoryColors[index % categoryColors.length] }} />
-            <Text className="font-bold text-muted ">{item.category}</Text>
-          </View>
-          <Text className="font-semibold text-text ">
-            {item.percentage}% · {formatCurrency(item.total)}
-          </Text>
-        </View>
-      ))}
+  return <Pressable accessibilityLabel={`${label}: ${value}`} accessibilityHint="Abre el calendario para cambiar la fecha" onPress={onPress}
+    style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, padding: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border }}>
+    <MaterialIcons name="calendar-today" size={20} color={c.icon} accessible={false} />
+    <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+      <Text style={{ fontSize: 12, color: c.muted }}>{label}</Text>
+      <Text style={{ fontSize: 15, lineHeight: 22, fontWeight: '600', color: c.text }}>{value}</Text>
     </View>
-  );
-}
-
-function HourlyLineChart({ data, compareData }: { data: HourlySales[]; compareData: HourlySales[] }) {
-  const maxOrders = Math.max(1, ...data.map((item) => item.orders), ...compareData.map((item) => item.orders));
-  const peak = data.reduce<HourlySales | null>((result, item) => {
-    if (!result || item.orders > result.orders) {
-      return item;
-    }
-    return result;
-  }, null);
-
-  return (
-    <View>
-      <View className="h-40 flex-row items-end gap-1 border-b border-l border-separator bg-primaryContainer pb-2 pl-2 ">
-        {data.map((item, index) => {
-          const height = Math.max(6, Math.round((item.orders / maxOrders) * 120));
-          const compareHeight = Math.max(0, Math.round(((compareData[index]?.orders ?? 0) / maxOrders) * 120));
-          const isPeak = peak?.hour === item.hour && item.orders > 0;
-
-          return (
-            <View key={item.hour} className="flex-1 items-center justify-end">
-              {isPeak ? <Text className="mb-1 text-[10px] font-semibold text-link">{item.orders}</Text> : null}
-              <View className="w-full items-center justify-end" style={{ height: 124 }}>
-                {compareHeight > 0 ? <View className="absolute bottom-0 w-1 rounded-none bg-chart4" style={{ height: compareHeight }} /> : null}
-                <View className={`w-2 rounded-none ${isPeak ? "bg-primary" : "bg-primary"}`} style={{ height }} />
-              </View>
-            </View>
-          );
-        })}
-      </View>
-      <View className="mt-2 flex-row gap-1 pl-2">
-        {data.map((item) => (
-          <Text key={item.hour} className="flex-1 text-center text-[10px] font-semibold text-muted">
-            {item.hour > 12 ? `${item.hour - 12}p` : `${item.hour}a`}
-          </Text>
-        ))}
-      </View>
-      <Text className="mt-3 text-sm font-bold text-muted">
-        Punto maximo: {peak ? `${peak.hour}:00 con ${peak.orders} ordenes` : "sin datos"}
-      </Text>
-    </View>
-  );
-}
-
-function TopProductsList({ data }: { data: TopProduct[] }) {
-  const maxQuantity = Math.max(1, ...data.map((item) => item.quantity));
-
-  if (data.length === 0) {
-    return <Text className="text-center text-sm font-semibold text-muted">No hay productos vendidos en este periodo.</Text>;
-  }
-
-  return (
-    <View className="gap-3">
-      {data.map((item, index) => (
-        <View key={`${item.dishName}-${index}`} className="gap-2 rounded-none bg-background p-3 ">
-          <View className="flex-row items-center justify-between gap-3">
-            <Text className="flex-1 font-semibold text-text ">
-              {index + 1}. {item.dishName}
-            </Text>
-            <Text className="font-semibold text-text ">{item.quantity} und</Text>
-          </View>
-          <View className="h-3 overflow-hidden rounded-none bg-surfaceElevated ">
-            <View className="h-full rounded-none bg-primary" style={{ width: `${(item.quantity / maxQuantity) * 100}%` }} />
-          </View>
-          <Text className="text-sm font-bold text-muted">Ingreso: {formatCurrency(item.total)}</Text>
-        </View>
-      ))}
-    </View>
-  );
+    <MaterialIcons name="expand-more" size={20} color={c.icon} accessible={false} />
+  </Pressable>;
 }

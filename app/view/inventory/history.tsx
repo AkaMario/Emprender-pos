@@ -1,5 +1,5 @@
+import { SelectionOption } from "@/components/ui/selection-option";
 import { colorContainer, useDesignColors } from "@/constants/design";
-import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import { LoadFeedback, useLoadFeedback } from "@/components/ui/load-feedback";
 import { AppInput } from "@/components/ui/form-input";
 import { ScreenScroll } from "@/components/ui/screen-scroll";
@@ -82,17 +82,7 @@ export default function InventoryHistory() {
         <ScreenScroll horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
             {movementTypes.map((value) => (
-              <Pressable
-                key={value}
-                onPress={() => setType(value)}
-                className={`rounded-none px-4 py-3 ${type === value ? "bg-primary" : "bg-surface "}`}
-              >
-                <Text
-                  className={`text-sm font-semibold ${type === value ? "text-onPrimary" : "text-text "}`}
-                >
-                  {movementLabel(value)}
-                </Text>
-              </Pressable>
+              <SelectionOption key={value} label={movementLabel(value)} selected={type === value} onPress={() => setType(value)} />
             ))}
           </View>
         </ScreenScroll>

@@ -1,3 +1,4 @@
+import { SelectionOption } from "@/components/ui/selection-option";
 import { useDesignColors } from "@/constants/design";
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
 import { LoadFeedback, useLoadFeedback } from "@/components/ui/load-feedback";
@@ -110,30 +111,8 @@ export default function CategoryView() {
       <ScreenScroll contentContainerClassName="gap-4 p-4 pb-10">
         <LoadFeedback {...loadStatus} />
         <View className="flex-row gap-2 rounded-none bg-surfaceElevated p-1 ">
-          <Pressable
-            accessibilityRole="radio"
-            accessibilityState={{ checked: kind === "product" }}
-            onPress={() => setKind("product")}
-            className={`flex-1 rounded-none px-3 py-3 ${kind === "product" ? "bg-primaryContainer" : ""}`}
-          >
-            <Text
-              className={`text-center font-semibold ${kind === "product" ? "text-link" : "text-text"}`}
-            >
-              {kind === "product" ? "✓ " : ""}Productos
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="radio"
-            accessibilityState={{ checked: kind === "inventory" }}
-            onPress={() => setKind("inventory")}
-            className={`flex-1 rounded-none px-3 py-3 ${kind === "inventory" ? "bg-primaryContainer" : ""}`}
-          >
-            <Text
-              className={`text-center font-semibold ${kind === "inventory" ? "text-link" : "text-text"}`}
-            >
-              {kind === "inventory" ? "✓ " : ""}Insumos
-            </Text>
-          </Pressable>
+          <View style={{ flex: 1 }}><SelectionOption label="Productos" selected={kind === "product"} onPress={() => setKind("product")} /></View>
+          <View style={{ flex: 1 }}><SelectionOption label="Insumos" selected={kind === "inventory"} onPress={() => setKind("inventory")} /></View>
         </View>
         <Button
           title={`Agregar categoría de ${label}`}

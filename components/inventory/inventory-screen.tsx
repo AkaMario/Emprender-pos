@@ -1,3 +1,4 @@
+import { SelectionOption as Pill } from "@/components/ui/selection-option";
 import { Button } from "@/components/ui/button";
 import { colorContainer, useDesignColors } from "@/constants/design";
 import { ActionPressable as Pressable } from "@/components/ui/action-pressable";
@@ -84,7 +85,7 @@ export function InventoryScreen() {
       <View className="flex-row flex-wrap gap-2">
         <Pill label="Orden: nombre" selected={sortBy === "name"} onPress={() => setSortBy("name")} />
         <Pill label="Orden: stock" selected={sortBy === "stock"} onPress={() => setSortBy("stock")} />
-        <Pill label="Criticos primero" selected={criticalFirst} onPress={() => setCriticalFirst((value) => !value)} />
+        <Pill role="checkbox" label="Críticos primero" selected={criticalFirst} onPress={() => setCriticalFirst((value) => !value)} />
       </View>
 
       <View className="gap-3">
@@ -130,12 +131,4 @@ export function InventoryScreen() {
 
 function ActionButton({ label, onPress }: { label: string; onPress: () => void }) {
   return <View className="min-w-[30%] flex-1"><Button title={label} secondary onPress={onPress} /></View>;
-}
-
-function Pill({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={onPress} className={`rounded-none px-4 py-3 ${selected ? "bg-primary" : "bg-surface "}`}>
-      <Text className={`text-sm font-semibold ${selected ? "text-onPrimary" : "text-text "}`}>{label}</Text>
-    </Pressable>
-  );
 }
