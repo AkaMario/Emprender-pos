@@ -9,9 +9,9 @@ export function ActionPressable({ style, onFocus, onBlur, onPressIn, onPressOut,
   const [focused, setFocused] = useState(false); const [pressed, setPressed] = useState(false); const [hovered, setHovered] = useState(false); const c = useDesignColors();
   return <Pressable accessibilityRole="button" {...props} accessibilityState={{ disabled: Boolean(props.disabled), ...accessibilityState }}
     onFocus={(event) => { setFocused(true); onFocus?.(event); }} onBlur={(event) => { setFocused(false); setPressed(false); onBlur?.(event); }}
-    onPressIn={(event) => { setPressed(true); onPressIn?.(event); }} onPressOut={(event) => { setPressed(false); onPressOut?.(event); }}
-    onHoverIn={(event) => { setHovered(true); onHoverIn?.(event); }} onHoverOut={(event) => { setHovered(false); onHoverOut?.(event); }}
-    style={[{ minWidth: metrics.touch, minHeight: metrics.touch, justifyContent: 'center', opacity: props.disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
+    onPressIn={(event) => { if (typeof style === 'function') setPressed(true); onPressIn?.(event); }} onPressOut={(event) => { setPressed(false); onPressOut?.(event); }}
+    onHoverIn={(event) => { if (typeof style === 'function') setHovered(true); onHoverIn?.(event); }} onHoverOut={(event) => { if (typeof style === 'function') setHovered(false); onHoverOut?.(event); }}
+    style={[{ minWidth: metrics.touch, minHeight: metrics.touch, justifyContent: 'center', opacity: props.disabled ? 0.5 : 1 },
       typeof style === 'function' ? style({ pressed, hovered }) : style,
       focused ? { outlineWidth: 2, outlineOffset: 3, outlineColor: c.primary, outlineStyle: 'solid' } : {}]} />;
 }

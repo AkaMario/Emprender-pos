@@ -1,12 +1,16 @@
+import Animated, { FadeIn, ReduceMotion, SlideInLeft } from "react-native-reanimated";
 import { useTutorial } from "@/context/tutorial";
 import { ActionPressable as Pressable } from '@/components/ui/action-pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, usePathname } from "expo-router";
 import React, { useRef } from "react";
-import { Text, View, Modal, ScrollView, Platform } from "react-native";
+import { Text, View, Modal, ScrollView, Platform, Pressable as BackdropPressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDesignColors } from "@/constants/design";
 import { useBusiness } from "@/context/business";
+
+const drawerEntrance = SlideInLeft.duration(160).reduceMotion(ReduceMotion.System);
+const backdropEntrance = FadeIn.duration(100).reduceMotion(ReduceMotion.System);
 
 interface SidebarProps {
   isOpen: boolean;
@@ -53,8 +57,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       }
     }}>
       <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Cerrar menú" onPress={onClose} style={{ backgroundColor: c.scrim, opacity: 0.6, position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} />
-        <SafeAreaView accessibilityViewIsModal onAccessibilityEscape={onClose} style={{ width: '85%', maxWidth: 360, flex: 1, backgroundColor }}>
+        <Animated.View testID="sidebar-backdrop" entering={backdropEntrance} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}>
+          <BackdropPressable accessibilityRole="button" accessibilityLabel="Cerrar menú" onPress={onClose} style={{ flex: 1, backgroundColor: c.scrim, opacity: 0.6 }} />
+        </Animated.View>
+        <Animated.View testID="sidebar-panel" entering={drawerEntrance} style={{ width: '85%', maxWidth: 360, flex: 1, backgroundColor }}>
+        <SafeAreaView accessibilityViewIsModal onAccessibilityEscape={onClose} style={{ flex: 1, backgroundColor }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderColor: c.separator }}>
             <Text accessibilityRole="header" style={{ flex: 1, fontSize: 22, fontWeight: '700', color: textColor }}>{profile?.name ?? 'Mi emprendimiento'}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Cerrar menú" onPress={onClose} style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="close" size={24} color={textColor} /></Pressable>
@@ -83,6 +90,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </Pressable>
           </View>
         </SafeAreaView>
+        </Animated.View>
       </View>
     </Modal>
   );

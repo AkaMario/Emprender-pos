@@ -1,5 +1,6 @@
+import { MotionPressable as Pressable } from "@/components/ui/motion-pressable";
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View, type PressableProps } from 'react-native';
+import { ActivityIndicator, Text, View, type PressableProps } from 'react-native';
 import { buttonColors, type ButtonVariant } from '@/constants/button-styles';
 import { metrics, radii, useDesignColors } from '@/constants/design';
 
@@ -27,8 +28,7 @@ export function Button({ title, onPress, variant, secondary = false, destructive
     onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)}
     style={{ minHeight: metrics.touch, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: radii.control,
         borderWidth: appearance === 'outline' || appearance === 'secondary' || disabled ? 1 : 0, borderColor: colors.border, backgroundColor: colors.background,
-        outlineWidth: focused ? 2 : 0, outlineColor: c.primary, outlineStyle: 'solid', outlineOffset: 3, opacity: 1,
-        transform: [{ scale: pressed && appearance === 'destructive' ? 0.98 : 1 }] }}>
+        outlineWidth: focused ? 2 : 0, outlineColor: c.primary, outlineStyle: 'solid', outlineOffset: 3, opacity: 1 }}>
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
       {loading ? <ActivityIndicator accessibilityLabel="Procesando" color={foreground} /> : icon?.(foreground)}
       <Text style={{ fontSize: 16, textAlign: 'center', fontWeight: '700', color: foreground, flexShrink: 1 }}>{selected ? '✓ ' : ''}{title}</Text>

@@ -1,3 +1,4 @@
+import { useReducedMotion } from "react-native-reanimated";
 import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay";
 import { Tabs, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -14,6 +15,7 @@ import { useDesignColors } from "@/constants/design";
 import { useBusiness } from "@/context/business";
 
 export default function TabLayout() {
+  const reduceMotion = useReducedMotion();
   const { definition } = useBusiness();
   const { isAuthenticated, isLoading } = useAuth();
   const c = useDesignColors();
@@ -37,6 +39,8 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
+          animation: reduceMotion ? 'none' : 'fade',
+          transitionSpec: { animation: 'timing', config: { duration: reduceMotion ? 0 : 90 } },
           tabBarHideOnKeyboard: true,
           tabBarButton: HapticTab,
           tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.separator, elevation: 0 },

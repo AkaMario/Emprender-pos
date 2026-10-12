@@ -1,3 +1,4 @@
+import { ScreenTransition } from "@/components/ui/screen-transition";
 import { useDesignColors } from "@/constants/design";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -41,7 +42,8 @@ export default function ViewLayout() {
     >
       <Navbar title={titles[path.split("/").pop() ?? ""] ?? "Detalle"} />
       <View style={{ flex: 1, backgroundColor: c.background }}>
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack screenOptions={{ headerShown: false, animation: 'none' }}
+          screenLayout={({ children }) => <ScreenTransition>{children}</ScreenTransition>} />
       </View>
     </SafeAreaView>
   );

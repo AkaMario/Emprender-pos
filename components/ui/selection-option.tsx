@@ -1,5 +1,6 @@
+import { MotionPressable as Pressable } from "@/components/ui/motion-pressable";
 import React, { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { buttonColors } from '@/constants/button-styles';
 import { metrics, radii, useDesignColors } from '@/constants/design';
 

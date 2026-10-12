@@ -19,7 +19,7 @@ function fixture(overrides = {}) {
     Platform: { OS: 'android' }, AccessibilityInfo: { isReduceMotionEnabled: async () => false, addEventListener: () => ({ remove() {} }), setAccessibilityFocus() {} }, findNodeHandle: () => null,
     StyleSheet: { flatten: (style) => Array.isArray(style) ? Object.assign({}, ...style.map((item) => native.StyleSheet.flatten(item))) : style },
   };
-  const mocks = { 'react-native': native, 'react-native-safe-area-context': { SafeAreaView: primitive('SafeAreaView') }, '@/hooks/use-color-scheme': { useColorScheme: () => 'light' }, '@expo/vector-icons/Ionicons': primitive('Icon'), ...overrides };
+  const mocks = { 'react-native-reanimated': { __esModule: true, default: { View: primitive('AnimatedView') }, useReducedMotion: () => false, ReduceMotion: { System: 'system' }, SlideInLeft: { duration: (duration) => ({ reduceMotion: (reduceMotion) => ({ duration, reduceMotion }) }) }, FadeIn: { duration: (duration) => ({ reduceMotion: (reduceMotion) => ({ duration, reduceMotion }) }) } }, '@/components/ui/motion-pressable': { MotionPressable: primitive('Pressable') }, 'react-native': native, 'react-native-safe-area-context': { SafeAreaView: primitive('SafeAreaView') }, '@/hooks/use-color-scheme': { useColorScheme: () => 'light' }, '@expo/vector-icons/Ionicons': primitive('Icon'), ...overrides };
   function load(relative) {
     const file = path.resolve(root, relative);
     if (cache.has(file)) return cache.get(file).exports;
@@ -337,6 +337,9 @@ test('sidebar offers the configuration tutorial and replays it after closing the
     'expo-router': { usePathname: () => '/', useRouter: () => ({ navigate: (route) => events.push(route) }) },
   });
   f.render(f.load('components/layout/sidebar.tsx').Sidebar, { isOpen: true, onClose: () => events.push('close') });
+  assert.equal(f.nodes.find((node) => node.type === 'Modal').animationType, 'none');
+  assert.deepEqual(f.nodes.find((node) => node.testID === 'sidebar-panel').entering, { duration: 160, reduceMotion: 'system' });
+  assert.deepEqual(f.nodes.find((node) => node.testID === 'sidebar-backdrop').entering, { duration: 100, reduceMotion: 'system' });
   const replay = f.nodes.find((node) => node.accessibilityLabel === 'Tutorial de configuración');
   assert.equal(replay.accessibilityRole, 'button');
   replay.onPress();
@@ -347,7 +350,7 @@ test('sidebar offers the configuration tutorial and replays it after closing the
 test('iOS waits until the sidebar modal is dismissed before opening the tutorial', () => {
   const events = [];
   const f = fixture({
-    'react-native': { Platform: { OS: 'ios' }, View: (props) => React.createElement('div', null, props.children), Text: (props) => React.createElement('span', null, props.children), ScrollView: (props) => React.createElement('div', null, props.children),
+    'react-native': { Platform: { OS: 'ios' }, Pressable: (props) => React.createElement('button', null, props.children), View: (props) => React.createElement('div', null, props.children), Text: (props) => React.createElement('span', null, props.children), ScrollView: (props) => React.createElement('div', null, props.children),
       Modal: (props) => { events.push(props); return React.createElement('div', null, props.children); } },
     '@/components/ui/action-pressable': { ActionPressable: (props) => { events.push(props); return React.createElement('button', null, props.children); } },
     '@/constants/design': { useDesignColors: () => ({}) },
@@ -365,4 +368,68 @@ test('iOS waits until the sidebar modal is dismissed before opening the tutorial
   assert.deepEqual(events, ['close', '/(tabs)/settings', 'start']);
   modal.onDismiss();
   assert.equal(events.filter((event) => event === 'start').length, 1);
+});
+
+test('press animation reverses on release and blur, forwards events and honors system reduced motion', () => {
+  const timings = []; const events = []; const scale = { value: 1, get() { return this.value; }, set(value) { this.value = value; } };
+  const f = fixture({ 'react-native-reanimated': {
+    __esModule: true,
+    default: { createAnimatedComponent: (component) => component },
+    useSharedValue: () => scale,
+    useAnimatedStyle: (factory) => factory(),
+    withTiming: (value, config) => { timings.push({ value, ...config }); return value; },
+    cancelAnimation() {}, ReduceMotion: { System: 'system' },
+  } });
+  const { MotionPressable } = f.load('components/ui/motion-pressable.tsx');
+  f.render(MotionPressable, { onPress: () => events.push('action'), onPressIn: (event) => events.push(event), onPressOut: (event) => events.push(event), onBlur: (event) => events.push(event), style: { backgroundColor: 'test-background' } });
+  const button = f.nodes.find((node) => node.type === 'Pressable');
+  button.onPressIn('down'); assert.equal(scale.value, 0.985);
+  button.onPress('activate');
+  button.onPressOut('up'); assert.equal(scale.value, 1);
+  button.onPressIn('down-again'); button.onBlur('blur'); assert.equal(scale.value, 1);
+  assert.deepEqual(events, ['down', 'action', 'up', 'down-again', 'blur']);
+  assert.ok(timings.every((timing) => timing.reduceMotion === 'system'));
+  assert.deepEqual(timings.map((timing) => timing.duration), [50, 80, 50, 80]);
+  assert.equal(button.style[0].backgroundColor, 'test-background');
+  assert.ok(button.style.every((style) => typeof style === 'object'));
+});
+
+test('disabled press controls do not start a press animation', () => {
+  const timings = []; const scale = { value: 1, get() { return this.value; }, set(value) { this.value = value; } };
+  const f = fixture({ 'react-native-reanimated': {
+    __esModule: true,
+    default: { createAnimatedComponent: (component) => component },
+    useSharedValue: () => scale, useAnimatedStyle: (factory) => factory(),
+    withTiming: (value) => { timings.push(value); return value; },
+    cancelAnimation() {}, ReduceMotion: { System: 'system' },
+  } });
+  const { MotionPressable } = f.load('components/ui/motion-pressable.tsx');
+  f.render(MotionPressable, { disabled: true });
+  const button = f.nodes.find((node) => node.type === 'Pressable');
+  button.onPressIn({});
+  assert.equal(button.disabled, true);
+  assert.equal(scale.value, 1);
+  assert.deepEqual(timings, []);
+});
+
+test('screen content uses one brief focus transition and cancels it when leaving', () => {
+  const progress = { value: 1, get() { return this.value; }, set(value) { this.value = value; } };
+  const timings = []; const cancelled = []; const views = []; let focus;
+  const f = fixture({
+    'expo-router': { useFocusEffect: (callback) => { focus = callback; } },
+    'react-native-reanimated': { __esModule: true,
+      default: { View: (props) => { views.push(props); return React.createElement('div', null, props.children); } },
+      useSharedValue: () => progress, useAnimatedStyle: (factory) => factory(),
+      withTiming: (value, config) => { timings.push({ value, ...config }); return value; },
+      cancelAnimation: (value) => cancelled.push(value), ReduceMotion: { System: 'system' },
+    },
+  });
+  f.render(f.load('components/ui/screen-transition.tsx').ScreenTransition, { children: 'Contenido' });
+  assert.equal(views[0].children, 'Contenido');
+  assert.equal(views[0].style[1].opacity, 1);
+  assert.equal(views[0].pointerEvents, undefined);
+  const blur = focus();
+  assert.deepEqual(timings, [{ value: 1, duration: 110, reduceMotion: 'system' }]);
+  blur();
+  assert.deepEqual(cancelled, [progress]);
 });

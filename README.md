@@ -41,5 +41,3 @@ El [diseño y roadmap actualizado](docs/architecture/multirubro.md) documenta en
 ```sh
 npx eas-cli build --platform android --profile preview
 ```
-
-Requiere la cuenta/configuración EAS del proyecto. No se generó ni publicó un APK durante esta reestructuración.

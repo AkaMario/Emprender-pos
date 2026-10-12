@@ -3,7 +3,6 @@ import { AlertHost } from "@/components/ui/alerts";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeRoot } from "@/components/layout/theme-root";
 import { Stack } from "expo-router";
-import "react-native-reanimated";
 import "../global.css";
 import { AuthProvider, useAuth } from "@/context/auth";
 import { BusinessProvider, useBusiness } from "@/context/business";
@@ -35,7 +34,7 @@ function RootNavigator() {
     );
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="login" />
         </Stack.Protected>
